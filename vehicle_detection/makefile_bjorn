@@ -1,0 +1,6 @@
+vehicledetection.exe : clean
+	g++ -g -o vehicledetection.exe main.cpp -w
+	vehicledetection.exe
+
+clean :
+	rm -f vehicledetection.exe
