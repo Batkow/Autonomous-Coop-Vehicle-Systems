@@ -1,39 +1,44 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <armadillo>
-
+#include <Eigen/Dense>
 using namespace cv;
 
-void GetRegionIntervals(arma::mat *regionPoints,arma::mat *lines,int currentRow, int nCols);
-void GetRegionLines(arma::mat regionPoints, arma::mat *lines,int rowV, int colV);
+// Decide the region intervals
+void GetRegionIntervals(Eigen::MatrixXd *regionPoints,Eigen::MatrixXd *lines,int currentRow, int nCols);
+
+// Get the lines COL = k * ROW + m
+void GetRegionLines(Eigen::MatrixXd *regionPoints, Eigen::MatrixXd *lines,int rowV, int colV);
 
 
 
-void GetRegionIntervals(arma::mat *regionPoints,arma::mat *lines,int currentRow, int nCols)
+void GetRegionIntervals(Eigen::MatrixXd *regionPoints,Eigen::MatrixXd *lines,int currentRow, int nCols)
 {
-  regionPoints->at(0,0) = 0;
-  regionPoints->at(0,regionPoints->n_cols-1)= nCols;
+  regionPoints->col(0)(0) = 0;
+  regionPoints->col(regionPoints->cols()-1)(0)= nCols;
   
-  for (int i=0;i<lines->n_rows;i++)
+  for (int i=0;i<lines->rows();i++)
   {
-    regionPoints->at(0,i+1) = min(max((int)(lines->at(i,0)*currentRow+lines->at(i,1)),0),nCols);
+    regionPoints->col(i+1)(0) = min(max((int)(lines->col(0)(i)*currentRow+lines->col(1)(i)),0),nCols);
     
   }
   
 }
 
-void GetRegionLines(arma::mat regionPoints, arma::mat *lines,int rowV, int colV)
+
+void GetRegionLines(Eigen::MatrixXd *regionPoints, Eigen::MatrixXd *lines,int rowV, int colV)
 {
   // Col = K * row + m
-  long width = regionPoints.n_cols;
-  for (int i=0; i<regionPoints.n_cols-1; i++) {
+  long width = regionPoints->cols();
+  for (int i=0; i<regionPoints->cols()-1; i++) {
     
-    double k = (double)(colV-regionPoints(0,i)) / (double)(rowV - regionPoints(0,width-1));
+    double k = (double)(colV-regionPoints->col(i)(0)) / (double)(rowV - regionPoints->col(width-1)(0));
     double m = (double)(colV - k*rowV);
-    lines->at(i,0) = k;
-    lines->at(i,1) = m;
+    lines->col(0)(i) = k;
+    lines->col(1)(i) = m;
     
   }
   
 }
+
+

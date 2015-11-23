@@ -9,11 +9,11 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <armadillo>
 #include <ctime>
 #include "Drawing.h"
 #include "ExtractingRegions.h"
 #include "ProcessImage.h"
+#include <Eigen/Dense>
 
 using namespace std;
 using namespace cv;
@@ -22,7 +22,7 @@ int ROWV,COLV,MINROW,MAXROW,T1,T2;
 
 int main(int argc, const char * argv[]) {
   // Setting selection for two different videos
-  arma::mat regions;
+  Eigen::MatrixXd regions(1,4);
   CvCapture* capture;
   
   if (0)
@@ -32,18 +32,18 @@ int main(int argc, const char * argv[]) {
     MINROW = 150; MAXROW = 300;
     T1 = 200; T2 = 300;
     capture = cvCreateFileCapture("/Users/batko/Downloads/rural.avi");
-    regions << 0 << 320 << 640 <<250<<arma::endr;
+    regions << 0, 320,640,250;
+    
     
   } else
   {
-    //Rural
+    //Highway
     ROWV = 293; COLV = 316;
     MINROW = 350; MAXROW = 450;
     T1 = 50; T2 = 150;
     capture = cvCreateFileCapture("/Users/batko/Downloads/highway.avi");
-    regions << -60 << COLV << 700 <<MAXROW<<arma::endr;
+    regions << -60, COLV,700,MAXROW;
   }
-  
   
   Mat image,src,IMG;
   // Set nPoints...but also check so it does not exceed.
@@ -52,9 +52,11 @@ int main(int argc, const char * argv[]) {
   if (nPoints > nMaxPoints)
     nPoints = nMaxPoints;
   
-  arma::mat lines(regions.n_cols-1,2);
-  GetRegionLines(regions,&lines,ROWV,COLV);
-
+  Eigen::MatrixXd lines(regions.cols()-1,2);
+  
+  GetRegionLines(&regions,&lines,ROWV,COLV);
+  
+  
   while(1) {
     
     // Get frame
@@ -63,26 +65,28 @@ int main(int argc, const char * argv[]) {
     resize(src, src, Size(640,480),0,0,INTER_CUBIC);
     clock_t begin = clock();
     // Process frame
-    GaussianBlur(src, src, {5,5}, 1);
+    GaussianBlur(src, src, Size(5,5), 1);
     Canny(src, image, T1, T2);
     
-    arma::mat recoveredPoints(nPoints,lines.n_rows+2);
+    Eigen::MatrixXd recoveredPoints(nPoints,lines.rows()+2);
+    
     ScanImage(&image,&lines,&recoveredPoints,nPoints,MINROW,MAXROW);
     
-    long nRegions = recoveredPoints.n_cols-1;
-    arma::field<arma::mat> cell(nRegions,1);
-    RemoveInvalidPoints(&recoveredPoints,&cell,nRegions,nPoints);
+    long nRegions = recoveredPoints.cols()-1;
     
-    arma::mat k(nRegions,1), m(nRegions,1);
-    LinearSolve(&cell,&k,&m,nRegions);
+    Eigen::MatrixXd K(nRegions,1), M(nRegions,1);
+    ExtractLines(&recoveredPoints,&K,&M,nRegions,nPoints);
+
     
-    cout<<(float)(clock()-begin) / CLOCKS_PER_SEC<<endl;
+    //cout<<(float)(clock()-begin) / CLOCKS_PER_SEC<<endl;
     
-    DrawTracks(&src, &k, &m,MINROW,MAXROW);
-    arma::mat K = lines.col(0);
-    arma::mat M = lines.col(1);
-    DrawTracks(&src, &K,&M,MINROW,MAXROW);
-    DrawBorders(&src,1,MINROW,MAXROW,k(1,0),k(2,0),m(1,0),m(2,0));
+    
+    DrawTracks(&src, &K, &M,MINROW,MAXROW);
+    DrawBorders(&src,1,MINROW,MAXROW,K(1,0),K(2,0),M(1,0),M(2,0));
+    Eigen::MatrixXd k = lines.col(0);
+    Eigen::MatrixXd m = lines.col(1);
+    DrawTracks(&src, &k,&m,MINROW,MAXROW);
+
     
     // Show image
     imshow("SUPER MEGA ULTRA LANE DETECTION", src);
