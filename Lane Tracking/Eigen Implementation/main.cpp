@@ -9,7 +9,6 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <armadillo>
 #include <ctime>
 #include "Drawing.h"
 #include "ExtractingRegions.h"
@@ -66,7 +65,7 @@ int main(int argc, const char * argv[]) {
     resize(src, src, Size(640,480),0,0,INTER_CUBIC);
     clock_t begin = clock();
     // Process frame
-    GaussianBlur(src, src, {5,5}, 1);
+    GaussianBlur(src, src, Size(5,5), 1);
     Canny(src, image, T1, T2);
     
     Eigen::MatrixXd recoveredPoints(nPoints,lines.rows()+2);
