@@ -1,26 +1,30 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <armadillo>
+#include <Eigen/Dense>
 
 using namespace std;
 using namespace cv;
 
 // Extract points for the different regions
-void ScanImage(cv::Mat *img, arma::mat *lines,arma::mat *recoveredPoints,int nPoints,int minRow, int maxRow);
+void ScanImage(cv::Mat *img, Eigen::MatrixXd *lines,Eigen::MatrixXd *recoveredPoints,int nPoints,int minRow, int maxRow);
 
 // Remove unwanted points
-void RemoveInvalidPoints(arma::mat *recoveredPoints,arma::field<arma::mat> *cell,long nRegions,int nPoints);
+void RemoveInvalidPoints(Eigen::MatrixXd *tmpMat, int nPoints);
 
 // Solve RMS problem for points to a line
-void LinearSolve(arma::field<arma::mat> *cell, arma::mat *k, arma::mat *m,long nRegions);
+void LinearSolve(Eigen::MatrixXd *dataPoints, double *k, double *m);
 
-void ScanImage(cv::Mat *img, arma::mat *lines,arma::mat *recoveredPoints,int nPoints,int minRow, int maxRow)
+
+
+
+// Eigen VERSION
+void ScanImage(cv::Mat *img, Eigen::MatrixXd *lines,Eigen::MatrixXd *recoveredPoints,int nPoints,int minRow, int maxRow)
 {
   double deltaRow = (maxRow-minRow) / (double)nPoints;
   int currentRow;
   
-  arma::mat regionPoints(1,lines->n_rows+2);
+  Eigen::MatrixXd regionPoints(1,lines->rows()+2);
   for (int i=0; i<nPoints; i++) {
     currentRow = minRow + i*deltaRow;
     
@@ -28,12 +32,11 @@ void ScanImage(cv::Mat *img, arma::mat *lines,arma::mat *recoveredPoints,int nPo
     GetRegionIntervals(&regionPoints,lines,currentRow,img->cols);
     Mat slice = img->row(currentRow);
     double meanPoint;
-    for (int j=0; j<lines->n_rows+1; j++) {
+    for (int j=0; j<lines->rows()+1; j++) {
       Mat indices,regionSlice;
-      
       if (regionPoints(0,j) != regionPoints(0,j+1))
       {
-        regionSlice = slice.colRange(regionPoints.at(0,j),regionPoints.at(0,j+1));
+        regionSlice = slice.colRange(regionPoints.col(j)(0),regionPoints.col(j+1)(0));
         findNonZero(regionSlice,indices);
         
         if (abs(mean(indices)[0]) < 0.1){
@@ -42,55 +45,72 @@ void ScanImage(cv::Mat *img, arma::mat *lines,arma::mat *recoveredPoints,int nPo
           meanPoint= mean(indices)[0]+regionPoints(0,j);
         }
         
-        recoveredPoints->at(i,j) = (int)meanPoint;
+        recoveredPoints->col(j)(i) = (int)meanPoint;
         
       } else
       {
-        recoveredPoints->at(i,j) = 0;
+        recoveredPoints->col(j)(i) = 0;
       }
       
       
     }
-    recoveredPoints->at(i,lines->n_rows+1) = currentRow;
+    recoveredPoints->col(lines->rows()+1)(i) = currentRow;
   }
 }
 
-void RemoveInvalidPoints(arma::mat *recoveredPoints,arma::field<arma::mat> *cell,long nRegions,int nPoints)
+void removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove)
 {
+  unsigned int numRows = matrix.rows()-1;
+  unsigned int numCols = matrix.cols();
   
-  for (int i=0; i<nRegions; i++) {
-    arma::mat tmpMat(nPoints,2);
-    tmpMat= arma::join_horiz(recoveredPoints->col(i),recoveredPoints->col(nRegions));
-    arma::uvec index = find(tmpMat.col(0)==0);
-    
-    if (size(index,0) != 0) {
-      for (int i=0; i<size(index,0); i++) {
-        tmpMat.shed_row(index(i)-1*i);
-      }
+  if( rowToRemove < numRows )
+    matrix.block(rowToRemove,0,numRows-rowToRemove,numCols) = matrix.block(rowToRemove+1,0,numRows-rowToRemove,numCols);
+  
+  matrix.conservativeResize(numRows,numCols);
+}
+
+void RemoveInvalidPoints(Eigen::MatrixXd *tmpMat, int nPoints)
+{
+  int counter = 0;
+  for (int i=0; i<nPoints; i++) {
+    if (tmpMat->col(0)(i-counter) == 0)
+    {
+      removeRow(*tmpMat,i-counter);
+      counter++;
     }
-    cell->at(i,0) = tmpMat;
   }
 }
 
-void LinearSolve(arma::field<arma::mat> *cell, arma::mat *k, arma::mat *m,long nRegions)
+// EIGEN VERSION
+void LinearSolve(Eigen::MatrixXd *dataPoints, double *k, double *m)
 {
-  for (int i=0; i<nRegions; i++) {
-    if (size(cell->at(i,0),0)>=1)
-    {
-      // Solve the system
-      arma::mat Y = cell->at(i,0).col(0); // Retrieved points on the sampling line
-      arma::mat X(cell->at(i,0).n_rows,2); // Matrix X = [1 xn]
-      
-      X.ones(); X.col(1) = cell->at(i,0).col(1); // Assign matrix X the values...
-      arma::mat B = solve(X,Y); // X = rows, Y = columns, B = {m,k};
-      // COL = k * ROW + m
-      k->at(i,0) = B(1,0);
-      m->at(i,0) = B(0,0);
-    }
-    else
-    {
-      k->at(i,0) = 0;
-      m->at(i,0) = 0;
-    }
+  if (dataPoints->rows()>=1)
+  {
+    // Solve the system
+    Eigen::MatrixXd COLS = dataPoints->col(0);
+    Eigen::MatrixXd ROWS = Eigen::MatrixXd::Ones(dataPoints->rows(),2);
+    ROWS.col(1) = dataPoints->col(1);
+    
+    Eigen::MatrixXd B = ROWS.householderQr().solve(COLS);
+    *k = B(1,0);
+    *m = B(0,0);
+    
   }
 }
+
+// EIGEN VERSION
+void ExtractLines(Eigen::MatrixXd *RECOVEREDPOINTS,Eigen::MatrixXd *KCOEFF, Eigen::MatrixXd *MCOEFF,long nRegions,int nPoints)
+{
+  for (int i=0; i<nRegions; i++) {
+    Eigen::MatrixXd tmpMat(nPoints,2);
+    tmpMat << RECOVEREDPOINTS->col(i),RECOVEREDPOINTS->col(nRegions);
+    RemoveInvalidPoints(&tmpMat,nPoints);
+    double k,m;
+    LinearSolve(&tmpMat,&k,&m);
+    KCOEFF->row(i)(0) = k;
+    MCOEFF->row(i)(0) = m;
+    
+  }
+  
+}
+
