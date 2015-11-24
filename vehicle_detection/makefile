@@ -7,7 +7,7 @@ EXECUTABLE = main.exe
 LIBPATH_s = -L/usr/local/Cellar/opencv/2.4.11_1/lib
 LIBPATH_b = -L/usr/include/opencv2
 
-LIB = -lopencv_core -lopencv_highgui -lopencv_imgproc
+LIB = -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_features2d -lopencv_objdetect
 FRAMEWORK = -framework Accelerate
 
 INCLUDEPATH_s = -I/usr/local/Cellar/opencv/2.4.11_1/include

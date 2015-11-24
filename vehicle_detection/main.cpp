@@ -9,6 +9,8 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <opencv2/objdetect/objdetect.hpp>
 #include <ctime>
 #include "Drawing.h"
 #include "ExtractingRegions.h"
@@ -42,8 +44,14 @@ int main(int argc, const char * argv[]) {
   regions << -60, COLV,700,MAXROW;
 
 
+  // Load Haar classifier
+  CascadeClassifier haarClassifier = CascadeClassifier("haar_classifiers/cars3.xml");
+  
+
   
   Mat image,src,IMG;
+
+  /*
   // Set nPoints...but also check so it does not exceed.
   int nPoints = 50, nMaxPoints = MAXROW-MINROW;
 
@@ -53,7 +61,10 @@ int main(int argc, const char * argv[]) {
   Eigen::MatrixXd lines(regions.cols()-1,2);
   
   GetRegionLines(&regions,&lines,ROWV,COLV);
+  */
   
+
+  vector<Rect> detectedVehicles;
   
   while(1) {
     
@@ -61,8 +72,12 @@ int main(int argc, const char * argv[]) {
     src = cvQueryFrame(capture);
 
     resize(src, src, Size(640,480),0,0,INTER_CUBIC);
+    //resize(src, image, Size(640,480),0,0,INTER_CUBIC);
     clock_t begin = clock();
     // Process frame
+
+    GaussianBlur(src, src, Size(5,5), 1);
+    /*
     GaussianBlur(src, src, Size(5,5), 1);
     Canny(src, image, T1, T2);
     
@@ -74,23 +89,39 @@ int main(int argc, const char * argv[]) {
     
     Eigen::MatrixXd K(nRegions,1), M(nRegions,1);
     ExtractLines(&recoveredPoints,&K,&M,nRegions,nPoints);
+    */
 
+    // trying Haar stuff
+    haarClassifier.detectMultiScale(src, detectedVehicles);
+    for (size_t i = 0; i < detectedVehicles.size(); i++)
+    {
+        rectangle(src, detectedVehicles[i], Scalar(0,255,0));
+    }
+
+    /*   // running haar detection on sharp image
+    haarClassifier.detectMultiScale(image, detectedVehicles);
+    for (size_t i = 0; i < detectedVehicles.size(); i++)
+    {
+        rectangle(image, detectedVehicles[i], Scalar(0,255,0));
+    }
+    */
     
     //cout<<(float)(clock()-begin) / CLOCKS_PER_SEC<<endl;
     
     
+    /*
     DrawTracks(&src, &K, &M,MINROW,MAXROW);
     DrawBorders(&src,1,MINROW,MAXROW,K(1,0),K(2,0),M(1,0),M(2,0));
     Eigen::MatrixXd k = lines.col(0);
     Eigen::MatrixXd m = lines.col(1);
     DrawTracks(&src, &k,&m,MINROW,MAXROW);
-
+    */
     
     // Show image
-    imshow("SUPER MEGA ULTRA LANE DETECTION", src);
-    moveWindow("SUPER MEGA ULTRA LANE DETECTION", 0, 0);
-    imshow("Canny",image);
-    moveWindow("Canny", 640, 0);
+    imshow("Blurry", src);
+    moveWindow("Blurry", 0, 0);
+    //imshow("Sharp",image);
+    //moveWindow("Sharp", 640, 0);
 
     // Key press events
     char key = (char)waitKey(1); //time interval for reading key input;
