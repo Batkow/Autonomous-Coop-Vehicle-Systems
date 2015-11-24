@@ -86,7 +86,7 @@ void LinearSolve(Eigen::MatrixXd *dataPoints, double *k, double *m)
 {
   if (dataPoints->rows()>=1)
   {
-    // Solve the system
+    // Solve the system COLS = k * ROWS + m
     Eigen::MatrixXd COLS = dataPoints->col(0);
     Eigen::MatrixXd ROWS = Eigen::MatrixXd::Ones(dataPoints->rows(),2);
     ROWS.col(1) = dataPoints->col(1);
