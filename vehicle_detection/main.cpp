@@ -24,26 +24,24 @@ int main(int argc, const char * argv[]) {
   // Setting selection for two different videos
   Eigen::MatrixXd regions(1,4);
   CvCapture* capture;
-  
-  if (0)
-  {
-    //Rural
-    ROWV = 100; COLV = 320;
-    MINROW = 150; MAXROW = 300;
-    T1 = 200; T2 = 300;
-    capture = cvCreateFileCapture("/Users/batko/Downloads/rural.avi");
-    regions << 0, 320,640,250;
-    
-    
-  } else
-  {
-    //Highway
-    ROWV = 293; COLV = 316;
-    MINROW = 350; MAXROW = 450;
-    T1 = 50; T2 = 150;
-    capture = cvCreateFileCapture("/Users/batko/Downloads/highway.avi");
-    regions << -60, COLV,700,MAXROW;
+
+
+  const char * videoPath = "defaultPath";
+  if (argv[1]) {
+    videoPath =  argv[1];
+    cout << "\nVideo path " << argv[1] <<  "\n";
+  } else {
+    cout << "\nNo video specified! \n";
   }
+  
+  //Highway
+  ROWV = 293; COLV = 316;
+  MINROW = 350; MAXROW = 450;
+  T1 = 50; T2 = 150;
+  capture = cvCreateFileCapture(videoPath);
+  regions << -60, COLV,700,MAXROW;
+
+
   
   Mat image,src,IMG;
   // Set nPoints...but also check so it does not exceed.

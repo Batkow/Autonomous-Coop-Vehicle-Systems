@@ -15,9 +15,11 @@ INCLUDEPATH = -I/usr/include/opencv2
 #INCLUDEPATH += -I/usr/local/Cellar/eigen/3.2.6/include/eigen3
 INCLUDEPATH += -I/usr/include/eigen3
 
+ARGUMENTS = "/home/plankton/Videos/highway.avi"
+
 	#$(CC) $(CFLAGS) $(EXECUTABLE) $(SOURCES) $(LIBPATH) $(LIB) $(INCLUDEPATH) $(FRAMEWORK)
 
 all: 
 	$(CC) $(CFLAGS) $(EXECUTABLE) $(SOURCES) $(LIBPATH) $(LIB) $(INCLUDEPATH)
-	./$(EXECUTABLE)
+	./$(EXECUTABLE) $(ARGUMENTS)
 
