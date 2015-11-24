@@ -69,7 +69,10 @@ int main(int argc, const char * argv[]) {
   while(1) {
     
     // Get frame
-    src = cvQueryFrame(capture);
+    int frameSkip = 5;
+    for (int i=0; i<frameSkip; i++) {
+      src = cvQueryFrame(capture);
+    }
 
     resize(src, src, Size(640,480),0,0,INTER_CUBIC);
     //resize(src, image, Size(640,480),0,0,INTER_CUBIC);
