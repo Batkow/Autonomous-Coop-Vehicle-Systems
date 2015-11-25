@@ -21,6 +21,36 @@ using namespace cv;
 int ROWV,COLV,MINROW,MAXROW,T1,T2;
 
 
+void SelectClosestLines(Eigen::MatrixXd *pointsPerRegion,Eigen::MatrixXd *regionIndex)
+{
+  int midRegion = (pointsPerRegion->rows()) / 2;
+  
+   //Left lane
+  bool leftLaneSet = 0;
+  for (int i=midRegion-1; i>0; i--) {
+    if ((pointsPerRegion->col(0)(i) > pointsPerRegion->col(0)(i-1)) || pointsPerRegion->col(0)(i)>10) {
+      regionIndex->col(0)(0) = i;
+      leftLaneSet = 1;
+      break;
+    }
+  }
+  if (!leftLaneSet)
+    regionIndex->col(0)(0)=0;
+  
+  //Right lane
+  bool rightLaneSet = 0;
+  for (int i=midRegion;i<pointsPerRegion->rows()-1;i++){
+    if ( (pointsPerRegion->col(0)(i) > pointsPerRegion->col(0)(i+1)) || pointsPerRegion->col(0)(i)>10){
+      regionIndex->col(0)(1) = i;
+      rightLaneSet = 1;
+      break;
+    }
+  }
+  if (!rightLaneSet)
+    regionIndex->col(0)(1)=pointsPerRegion->rows()-1;
+}
+
+
 double GetLateralPosition(double K1,double K2, double M1,double M2,int MAXROW)
 {
   double laneWidth = 3.5;
@@ -47,65 +77,70 @@ int main(int argc, const char * argv[]) {
   {
     //Highway
     ROWV = 293; COLV = 316;
-    MINROW = 320; MAXROW = 480;
-    T1 = 50; T2 = 150;
+    MINROW = 340; MAXROW = 480;
+    T1 = 70; T2 = 150;
     capture = cvCreateFileCapture("/Users/batko/Downloads/highway.avi");
-    regions << -60, COLV,700,450;
+    //regions << -60,100,200, COLV,440,540,700,450;
+    regions << -60, COLV, 700, 450;
   }
   
   Mat image,src,IMG;
   // Set nPoints...but also check so it does not exceed.
-  int nPoints = 100, nMaxPoints = MAXROW-MINROW;
+  int nPoints = 50, nMaxPoints = MAXROW-MINROW;
 
   if (nPoints > nMaxPoints)
     nPoints = nMaxPoints;
   
   Eigen::MatrixXd lines(regions.cols()-1,2);
-  
   GetRegionLines(&regions,&lines,ROWV,COLV);
   
   while(1) {
-    //clock_t begin = clock();
     // Get frame
     src = cvQueryFrame(capture);
 
     resize(src, src, Size(640,480),0,0,INTER_CUBIC);
-    
+    clock_t begin = clock();
     // Process frame
     GaussianBlur(src, src, Size(5,5), 1);
-    Canny(src, image, T1, T2);
     
+    Canny(src, image, T1, T2);
+    //cvtColor(src, srcGray, CV_RGB2GRAY);
+    
+    //threshold(srcGray, image, 160, 255, 0);
+    //medianBlur(image, image, 5);
     Eigen::MatrixXd recoveredPoints(nPoints,lines.rows()+2);
     
     ScanImage(&image,&lines,&recoveredPoints,nPoints,MINROW,MAXROW);
-    
     long nRegions = recoveredPoints.cols()-1;
     
     Eigen::MatrixXd K(nRegions,1), M(nRegions,1);
-    ExtractLines(&recoveredPoints,&K,&M,nRegions,nPoints);
-
+    Eigen::MatrixXd pointsPerRegion(nRegions,1);
+    ExtractLines(&recoveredPoints,&K,&M,nRegions,nPoints,&pointsPerRegion);
     
-    
-    
-    
-    //DrawTracks(&src, &K, &M,MINROW,MAXROW);
-    DrawBorders(&src,1,MINROW,MAXROW,K(1,0),K(2,0),M(1,0),M(2,0));
+    Eigen::MatrixXd regionIndex(2,1);
+    SelectClosestLines(&pointsPerRegion,&regionIndex);
+    //int p1 = regionIndex(0,0), p2 = regionIndex(1,0);
+    int p1 = 1, p2 = 2;
+    DrawTracks(&src, &K, &M,MINROW,MAXROW);
+    DrawBorders(&src,1,MINROW,MAXROW,K(p1,0),K(p2,0),M(p1,0),M(p2,0));
     Eigen::MatrixXd k = lines.col(0);
     Eigen::MatrixXd m = lines.col(1);
-    //DrawTracks(&src, &k,&m,MINROW,MAXROW);
+    DrawTracks(&src, &k,&m,MINROW,MAXROW);
     double laneOffset = GetLateralPosition(K(1,0),K(2,0),M(1,0),M(2,0),MAXROW);
     cout<<"Lane offset:"<<laneOffset<<endl;
+    //cout<<(float)(clock()-begin) / CLOCKS_PER_SEC<<endl;
     // Show image
+    
+    
     imshow("SUPER MEGA ULTRA LANE DETECTION", src);
     moveWindow("SUPER MEGA ULTRA LANE DETECTION", 0, 0);
     imshow("Canny",image);
     moveWindow("Canny", 640, 0);
-
     // Key press events
     char key = (char)waitKey(1); //time interval for reading key input;
     if(key == 'q' || key == 'Q' || key == 27)
       break;
-    //cout<<(float)(clock()-begin) / CLOCKS_PER_SEC<<endl;
+    //
   }
   cvReleaseCapture(&capture);
   cvDestroyWindow("Example3");

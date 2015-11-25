@@ -31,6 +31,7 @@ void ScanImage(cv::Mat *img, Eigen::MatrixXd *lines,Eigen::MatrixXd *recoveredPo
     // Calculate the start and end points for the regions
     GetRegionIntervals(&regionPoints,lines,currentRow,img->cols);
     Mat slice = img->row(currentRow);
+
     double meanPoint;
     for (int j=0; j<lines->rows()+1; j++) {
       Mat indices,regionSlice;
@@ -99,18 +100,20 @@ void LinearSolve(Eigen::MatrixXd *dataPoints, double *k, double *m)
 }
 
 // EIGEN VERSION
-void ExtractLines(Eigen::MatrixXd *RECOVEREDPOINTS,Eigen::MatrixXd *KCOEFF, Eigen::MatrixXd *MCOEFF,long nRegions,int nPoints)
+void ExtractLines(Eigen::MatrixXd *RECOVEREDPOINTS,Eigen::MatrixXd *KCOEFF,
+                  Eigen::MatrixXd *MCOEFF,long nRegions,int nPoints,
+                  Eigen::MatrixXd *pointsPerRegion)
 {
   for (int i=0; i<nRegions; i++) {
     Eigen::MatrixXd tmpMat(nPoints,2);
     tmpMat << RECOVEREDPOINTS->col(i),RECOVEREDPOINTS->col(nRegions);
     RemoveInvalidPoints(&tmpMat,nPoints);
+    pointsPerRegion->col(0)(i) = tmpMat.rows();
     double k,m;
     LinearSolve(&tmpMat,&k,&m);
     KCOEFF->row(i)(0) = k;
     MCOEFF->row(i)(0) = m;
     
   }
-  
 }
 
