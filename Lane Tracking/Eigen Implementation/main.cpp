@@ -51,19 +51,36 @@ void SelectClosestLines(Eigen::MatrixXd *pointsPerRegion,Eigen::MatrixXd *region
 }
 
 
-double GetLateralPosition(double K1,double K2, double M1,double M2,int MAXROW)
+double GetLateralPosition(double K1,double K2, double M1,double M2,double MAXROW)
 {
   double laneWidth = 3.5;
   double centerLane = ((K2 * MAXROW + M2) + (K1 * MAXROW + M1) ) / 2.0;
-  return laneWidth / (320-centerLane);
+  double pixelLaneWidth = abs((K2 * MAXROW + M2) - (K1 * MAXROW + M1) );
+  double pixelsPerMeter = pixelLaneWidth / laneWidth;
+  double offset = 320-centerLane;
+  
+  return offset / (pixelsPerMeter);
+  
+  
 }
+
+void AddMomentum(Eigen::MatrixXd &K, Eigen::MatrixXd &kPrev,Eigen::MatrixXd &M,Eigen::MatrixXd &mPrev,double alpha)
+{
+  
+  K = (1-alpha) * K + alpha * kPrev;
+  M = (1-alpha) * M + alpha * mPrev;
+  kPrev = K;
+  mPrev = M;
+
+}
+
 
 int main(int argc, const char * argv[]) {
   // Setting selection for two different videos
   Eigen::MatrixXd regions(1,4);
   CvCapture* capture;
   
-  if (0)
+  if (1)
   {
     //Rural
     ROWV = 100; COLV = 320;
@@ -94,20 +111,22 @@ int main(int argc, const char * argv[]) {
   Eigen::MatrixXd lines(regions.cols()-1,2);
   GetRegionLines(&regions,&lines,ROWV,COLV);
   
+  Eigen::MatrixXd kPrev = Eigen::MatrixXd::Zero(regions.cols(), 1);
+  Eigen::MatrixXd mPrev = Eigen::MatrixXd::Zero(regions.cols(), 1);
+  double alpha = 0.8;
+  
   while(1) {
     // Get frame
     src = cvQueryFrame(capture);
 
     resize(src, src, Size(640,480),0,0,INTER_CUBIC);
     clock_t begin = clock();
+    
     // Process frame
     GaussianBlur(src, src, Size(5,5), 1);
     
     Canny(src, image, T1, T2);
-    //cvtColor(src, srcGray, CV_RGB2GRAY);
     
-    //threshold(srcGray, image, 160, 255, 0);
-    //medianBlur(image, image, 5);
     Eigen::MatrixXd recoveredPoints(nPoints,lines.rows()+2);
     
     ScanImage(&image,&lines,&recoveredPoints,nPoints,MINROW,MAXROW);
@@ -117,25 +136,27 @@ int main(int argc, const char * argv[]) {
     Eigen::MatrixXd pointsPerRegion(nRegions,1);
     ExtractLines(&recoveredPoints,&K,&M,nRegions,nPoints,&pointsPerRegion);
     
-    Eigen::MatrixXd regionIndex(2,1);
-    SelectClosestLines(&pointsPerRegion,&regionIndex);
+    AddMomentum(K,kPrev,M,mPrev,alpha);
+    
+    //Eigen::MatrixXd regionIndex(2,1);
+    //SelectClosestLines(&pointsPerRegion,&regionIndex);
     //int p1 = regionIndex(0,0), p2 = regionIndex(1,0);
+    
     int p1 = 1, p2 = 2;
-    DrawTracks(&src, &K, &M,MINROW,MAXROW);
+    //DrawTracks(&src, &K, &M,MINROW,MAXROW);
     DrawBorders(&src,1,MINROW,MAXROW,K(p1,0),K(p2,0),M(p1,0),M(p2,0));
     Eigen::MatrixXd k = lines.col(0);
     Eigen::MatrixXd m = lines.col(1);
-    DrawTracks(&src, &k,&m,MINROW,MAXROW);
-    double laneOffset = GetLateralPosition(K(1,0),K(2,0),M(1,0),M(2,0),MAXROW);
+    //DrawTracks(&src, &k,&m,MINROW,MAXROW);
+    double laneOffset = GetLateralPosition(K(p1,0),K(p2,0),M(p1,0),M(p2,0),(MAXROW+MINROW) /2.0);
     cout<<"Lane offset:"<<laneOffset<<endl;
     //cout<<(float)(clock()-begin) / CLOCKS_PER_SEC<<endl;
     // Show image
-    
-    
     imshow("SUPER MEGA ULTRA LANE DETECTION", src);
     moveWindow("SUPER MEGA ULTRA LANE DETECTION", 0, 0);
     imshow("Canny",image);
     moveWindow("Canny", 640, 0);
+    
     // Key press events
     char key = (char)waitKey(1); //time interval for reading key input;
     if(key == 'q' || key == 'Q' || key == 27)
