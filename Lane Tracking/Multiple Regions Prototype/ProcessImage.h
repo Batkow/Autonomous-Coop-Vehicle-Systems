@@ -70,6 +70,19 @@ void removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove)
   matrix.conservativeResize(numRows,numCols);
 }
 
+void removeRow(Eigen::VectorXd& matrix, unsigned int rowToRemove)
+{
+  unsigned int numRows = matrix.rows()-1;
+  unsigned int numCols = matrix.cols();
+  
+  if( rowToRemove < numRows )
+    matrix.block(rowToRemove,0,numRows-rowToRemove,numCols) = matrix.block(rowToRemove+1,0,numRows-rowToRemove,numCols);
+  
+  matrix.conservativeResize(numRows,numCols);
+}
+
+
+
 void RemoveInvalidPoints(Eigen::MatrixXd *tmpMat, int nPoints)
 {
   int counter = 0;
@@ -108,7 +121,12 @@ void ExtractLines(Eigen::MatrixXd *RECOVEREDPOINTS,Eigen::MatrixXd *KCOEFF,
     Eigen::MatrixXd tmpMat(nPoints,2);
     tmpMat << RECOVEREDPOINTS->col(i),RECOVEREDPOINTS->col(nRegions);
     RemoveInvalidPoints(&tmpMat,nPoints);
-    pointsPerRegion->col(0)(i) = tmpMat.rows();
+    
+    if (tmpMat.rows()>0.05*nPoints){
+      pointsPerRegion->col(0)(i) = tmpMat.rows();
+    } else {
+      pointsPerRegion->col(0)(i) = 0;
+    }
     double k,m;
     LinearSolve(&tmpMat,&k,&m);
     KCOEFF->row(i)(0) = k;
