@@ -69,7 +69,7 @@ int main(int argc, const char * argv[]) {
   while(1) {
     
     // Get frame
-    int frameSkip = 5;
+    int frameSkip = 1;
     for (int i=0; i<frameSkip; i++) {
       src = cvQueryFrame(capture);
     }
@@ -122,7 +122,7 @@ int main(int argc, const char * argv[]) {
     
     // Show image
     imshow("Blurry", src);
-    moveWindow("Blurry", 0, 0);
+    moveWindow("Blurry", 100, 0);
     //imshow("Sharp",image);
     //moveWindow("Sharp", 640, 0);
 
