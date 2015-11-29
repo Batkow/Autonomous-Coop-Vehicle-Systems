@@ -4,6 +4,9 @@ CFLAGS = -o
 SOURCES = main.cpp
 EXECUTABLE = main.exe
 
+SVM_SOURCES = SVM.cpp
+SVM_EXECUTABLE = SVM.exe
+
 LIBPATH_s = -L/usr/local/Cellar/opencv/2.4.11_1/lib
 LIBPATH_b = -L/usr/include/opencv2
 
@@ -23,7 +26,11 @@ ARGUMENTS_s = "/Users/tempuser/Documents/highway.avi"
 bjorn: 
 	$(CC) $(CFLAGS) $(EXECUTABLE) $(SOURCES) $(LIBPATH_b) $(LIB) $(INCLUDEPATH_b)
 	./$(EXECUTABLE) $(ARGUMENTS_b)
+
 selvin: 
 	$(CC) $(CFLAGS) $(EXECUTABLE) $(SOURCES) $(LIBPATH_s) $(LIB) $(INCLUDEPATH_s)
 	./$(EXECUTABLE) $(ARGUMENTS_s)
 
+svm: 
+	$(CC) $(CFLAGS) $(SVM_EXECUTABLE) $(SVM_SOURCES) $(LIBPATH_b) -lopencv_core -lopencv_highgui -lopencv_ml $(INCLUDEPATH_b)
+	./$(SVM_EXECUTABLE)
