@@ -10,8 +10,11 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/ml/ml.hpp>
 #include <ctime>
+#include "SVM.h"
 
 using namespace cv;
+using namespace std;
+
 
 int main(int argc, const char * argv[]) {
 
@@ -39,15 +42,21 @@ int main(int argc, const char * argv[]) {
     	{210, 201} };
     Mat trainingDataMat(6, 2, CV_32FC1, trainingData);
 
-    // Set up SVM's parameters
-    CvSVMParams params;
-    params.svm_type    = CvSVM::C_SVC;
-    params.kernel_type = CvSVM::RBF;
-    params.term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 1000, 1e-6);
 
-    // Train the SVM
+    if (argc != 2) {
+        cout << "No trained SVM was specified!\n";
+        return -1;
+    } else {
+        cout << "Correct number of arguments!\n";
+    }
+
+    const char * pathToTrainedSVM = "defaultPath";
+    pathToTrainedSVM =  argv[1];
+    cout << "\nPath to trained SVM: " << pathToTrainedSVM <<  "\n";
+
     CvSVM SVM;
-    SVM.train(trainingDataMat, labelsMat, Mat(), Mat(), params);
+    SVM.load(pathToTrainedSVM);
+
 
     Vec3b green(0,255,0), blue (255,0,0);
     // Show the decision regions given by the SVM

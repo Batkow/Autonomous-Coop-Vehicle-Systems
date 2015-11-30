@@ -31,6 +31,10 @@ selvin:
 	$(CC) $(CFLAGS) $(EXECUTABLE) $(SOURCES) $(LIBPATH_s) $(LIB) $(INCLUDEPATH_s)
 	./$(EXECUTABLE) $(ARGUMENTS_s)
 
-svm: 
+svm_example: 
 	$(CC) $(CFLAGS) $(SVM_EXECUTABLE) $(SVM_SOURCES) $(LIBPATH_b) -lopencv_core -lopencv_highgui -lopencv_ml $(INCLUDEPATH_b)
-	./$(SVM_EXECUTABLE)
+	./$(SVM_EXECUTABLE) "trained_svm.xml"
+
+svm_train: 
+	$(CC) $(CFLAGS) TrainSVM.exe TrainSVM.cpp $(LIBPATH_b) -lopencv_core -lopencv_highgui -lopencv_ml $(INCLUDEPATH_b)
+	./TrainSVM.exe "training_data_folder" "trained_svm.xml"
