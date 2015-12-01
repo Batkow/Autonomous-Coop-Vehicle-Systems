@@ -11,18 +11,19 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/objdetect/objdetect.hpp>
+#include <opencv2/ml/ml.hpp>
 #include <ctime>
-#include "Drawing.h"
-#include "ExtractingRegions.h"
-#include "ProcessImage.h"
 #include <Eigen/Dense>
 
 using namespace std;
 using namespace cv;
 
 int ROWV,COLV,MINROW,MAXROW,T1,T2;
+const char * haarClassPath = "haar_classifiers/currently_used_classifier.xml";
+const char * svmPath = "trained_svm.xml";
 
 int main(int argc, const char * argv[]) {
+  cout << "\n";
   // Setting selection for two different videos
   Eigen::MatrixXd regions(1,4);
   CvCapture* capture;
@@ -31,10 +32,11 @@ int main(int argc, const char * argv[]) {
   const char * videoPath = "defaultPath";
   if (argv[1]) {
     videoPath =  argv[1];
-    cout << "\nVideo path " << argv[1] <<  "\n";
+    cout << "Video path: " << argv[1] <<  "\n";
   } else {
-    cout << "\nNo video specified! \n";
+    cout << "No video specified! \n";
   }
+  cout << "Path to trained SVM: " << svmPath <<  "\n";
   
   //Highway
   ROWV = 293; COLV = 316;
@@ -44,12 +46,23 @@ int main(int argc, const char * argv[]) {
   regions << -60, COLV,700,MAXROW;
 
 
-  // Load Haar classifier
-  CascadeClassifier haarClassifier = CascadeClassifier("haar_classifiers/cars3.xml");
-  
-
-  
   Mat image,src,IMG;
+
+
+  // Load Haar classifier (used for generating hypotheses)
+  CascadeClassifier haarClassifier = CascadeClassifier(haarClassPath);
+  
+  // Load Feature evaluator (used for extracting Haar features)
+  FileStorage fs(haarClassPath, FileStorage::READ);
+  FileNode featuresNode = fs["cascade"]["features"];
+  int nrOfFeatures = featuresNode.size();
+  double featureVector[nrOfFeatures];
+  Ptr<FeatureEvaluator> ptrHaar = FeatureEvaluator::create(FeatureEvaluator::HAAR);
+  ptrHaar->read(featuresNode);
+
+  // Load the Support Vector Machine used for verification
+  CvSVM mySVM;
+  mySVM.load(svmPath);
 
   /*
   // Set nPoints...but also check so it does not exceed.
@@ -63,6 +76,8 @@ int main(int argc, const char * argv[]) {
   GetRegionLines(&regions,&lines,ROWV,COLV);
   */
   
+  //cout << "Number of Haar features:  " << nrOfFeatures << " \n";
+  //cout << "Length of feature vector: " << sizeof(featureVector)/sizeof(featureVector[0]) << " \n";
 
   vector<Rect> detectedVehicles;
   
@@ -98,33 +113,43 @@ int main(int argc, const char * argv[]) {
     haarClassifier.detectMultiScale(src, detectedVehicles);
     for (size_t i = 0; i < detectedVehicles.size(); i++)
     {
-        rectangle(src, detectedVehicles[i], Scalar(0,255,0));
-    }
+      Rect r = detectedVehicles[i];
+      // Extract Haar features and throw them into a trained SVM
+      FileNodeIterator it = featuresNode.begin(), it_end = featuresNode.end();
+      ptrHaar->setImage(src, Size(r.width, r.height));
+      ptrHaar->setWindow(Point(r.x, r.y));
+      //ptrHaar->setImage(src, Size(100, 100));
+      //ptrHaar->setWindow(Point(0, 0));
+      int idx = 0;
+      //cout << "Before loop \n";
+      while (it != it_end) {
+        featureVector[idx] = ptrHaar->calcOrd(idx);
+        //cout << "Feature number " << idx << " : " << res << "\n";
+        it++;
+        idx++;
+      }
+      //cout << "After loop \n";
+      Mat featureMat(nrOfFeatures, 1, CV_32FC1, featureVector);
+      // The following line will crash if wrong number of inputs to SVM!
+      //float response = mySVM.predict(featureMat);
+      float response = 0;
 
-    /*   // running haar detection on sharp image
-    haarClassifier.detectMultiScale(image, detectedVehicles);
-    for (size_t i = 0; i < detectedVehicles.size(); i++)
-    {
-        rectangle(image, detectedVehicles[i], Scalar(0,255,0));
+
+      if (response > 0) {
+        // if this rectangle gets verified by SVM, draw green
+        rectangle(src, r, Scalar(0,255,0));
+      } else {
+        // otherwise, if not verified, draw red
+        rectangle(src, r, Scalar(0,0,255));
+      }
     }
-    */
     
     //cout<<(float)(clock()-begin) / CLOCKS_PER_SEC<<endl;
     
     
-    /*
-    DrawTracks(&src, &K, &M,MINROW,MAXROW);
-    DrawBorders(&src,1,MINROW,MAXROW,K(1,0),K(2,0),M(1,0),M(2,0));
-    Eigen::MatrixXd k = lines.col(0);
-    Eigen::MatrixXd m = lines.col(1);
-    DrawTracks(&src, &k,&m,MINROW,MAXROW);
-    */
-    
     // Show image
-    imshow("Blurry", src);
-    moveWindow("Blurry", 100, 0);
-    //imshow("Sharp",image);
-    //moveWindow("Sharp", 640, 0);
+    imshow("Vehicle detection", src);
+    moveWindow("Vehicle detection", 100, 0);
 
     // Key press events
     char key = (char)waitKey(1); //time interval for reading key input;
@@ -132,6 +157,6 @@ int main(int argc, const char * argv[]) {
       break;
   }
   cvReleaseCapture(&capture);
-  cvDestroyWindow("Example3");
+  cvDestroyWindow("Vehicle detection");
   return 0;
   }
