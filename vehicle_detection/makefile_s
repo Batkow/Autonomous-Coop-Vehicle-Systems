@@ -1,0 +1,29 @@
+CC= g++
+CFLAGS = -o
+
+SOURCES = main_s.cpp
+EXECUTABLE = main_s.exe
+
+LIBPATH_s = -L/Users/tempuser/Documents/opencv-2.4.11
+LIBPATH_b = -L/usr/include/opencv2
+
+LIB = -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_features2d -lopencv_objdetect
+FRAMEWORK = -framework Accelerate
+
+INCLUDEPATH_s = -I/Users/tempuser/Documents/opencv-2.4.11
+INCLUDEPATH_s += -I/usr/local/Cellar/eigen/3.2.6/include/eigen3
+INCLUDEPATH_b = -I/usr/include/opencv2
+INCLUDEPATH_b += -I/usr/include/eigen3
+
+ARGUMENTS_b = "/home/plankton/Videos/highway.avi"
+ARGUMENTS_s = "/Users/tempuser/Documents/vehicle_test_video1.avi"
+
+	#$(CC) $(CFLAGS) $(EXECUTABLE) $(SOURCES) $(LIBPATH) $(LIB) $(INCLUDEPATH) $(FRAMEWORK)
+
+bjorn: 
+	$(CC) $(CFLAGS) $(EXECUTABLE) $(SOURCES) $(LIBPATH_b) $(LIB) $(INCLUDEPATH_b)
+	./$(EXECUTABLE) $(ARGUMENTS_b)
+selvin: 
+	$(CC) $(CFLAGS) $(EXECUTABLE) $(SOURCES) $(LIBPATH_s) $(LIB) $(INCLUDEPATH_s)
+	./$(EXECUTABLE) $(ARGUMENTS_s)
+
