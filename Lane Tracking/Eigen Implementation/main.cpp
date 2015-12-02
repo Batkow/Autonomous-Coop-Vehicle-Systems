@@ -20,7 +20,6 @@ using namespace cv;
 
 int ROWV,COLV,MINROW,MAXROW,T1,T2;
 
-
 void SelectClosestLines(Eigen::MatrixXd *pointsPerRegion,Eigen::MatrixXd *regionIndex)
 {
   int midRegion = (pointsPerRegion->rows()) / 2;
@@ -64,6 +63,7 @@ double GetLateralPosition(double K1,double K2, double M1,double M2,double MAXROW
   
 }
 
+
 void AddMomentum(Eigen::MatrixXd &K, Eigen::MatrixXd &kPrev,Eigen::MatrixXd &M,Eigen::MatrixXd &mPrev,double alpha)
 {
   
@@ -80,13 +80,13 @@ int main(int argc, const char * argv[]) {
   Eigen::MatrixXd regions(1,4);
   CvCapture* capture;
   
-  if (1)
+  if (0)
   {
     //Rural
     ROWV = 100; COLV = 320;
     MINROW = 150; MAXROW = 300;
     T1 = 200; T2 = 300;
-    capture = cvCreateFileCapture("/Users/batko/Downloads/rural.avi");
+    capture = cvCreateFileCapture("/Users/amritk/Desktop/rural.avi");
     regions << 0, 320,640,250;
     
     
@@ -96,7 +96,7 @@ int main(int argc, const char * argv[]) {
     ROWV = 293; COLV = 316;
     MINROW = 340; MAXROW = 480;
     T1 = 70; T2 = 150;
-    capture = cvCreateFileCapture("/Users/batko/Downloads/highway.avi");
+    capture = cvCreateFileCapture("/Users/amritk/Desktop/highway.avi");
     //regions << -60,100,200, COLV,440,540,700,450;
     regions << -60, COLV, 700, 450;
   }
@@ -114,6 +114,9 @@ int main(int argc, const char * argv[]) {
   Eigen::MatrixXd kPrev = Eigen::MatrixXd::Zero(regions.cols(), 1);
   Eigen::MatrixXd mPrev = Eigen::MatrixXd::Zero(regions.cols(), 1);
   double alpha = 0.8;
+  double countWithin = 0, countIter = 0;
+  double percentWithin;
+    
   
   while(1) {
     // Get frame
@@ -143,16 +146,24 @@ int main(int argc, const char * argv[]) {
     //int p1 = regionIndex(0,0), p2 = regionIndex(1,0);
     
     int p1 = 1, p2 = 2;
-    //DrawTracks(&src, &K, &M,MINROW,MAXROW);
+    DrawTracks(&src, &K, &M,MINROW,MAXROW);
     DrawBorders(&src,1,MINROW,MAXROW,K(p1,0),K(p2,0),M(p1,0),M(p2,0));
     Eigen::MatrixXd k = lines.col(0);
     Eigen::MatrixXd m = lines.col(1);
     //DrawTracks(&src, &k,&m,MINROW,MAXROW);
     double laneOffset = GetLateralPosition(K(p1,0),K(p2,0),M(p1,0),M(p2,0),(MAXROW+MINROW) /2.0);
+    if(abs(laneOffset) < 0.5)
+    {
+        countWithin+=1;
+    }
+      countIter+=1;
+    percentWithin = (countWithin/countIter)*100;
     cout<<"Lane offset:"<<laneOffset<<endl;
+      cout<<"Percentage:"<<percentWithin<<endl;
     //cout<<(float)(clock()-begin) / CLOCKS_PER_SEC<<endl;
     // Show image
     imshow("SUPER MEGA ULTRA LANE DETECTION", src);
+    imwrite( "/Users/Desktop/LinesImage.jpg", src );
     moveWindow("SUPER MEGA ULTRA LANE DETECTION", 0, 0);
     imshow("Canny",image);
     moveWindow("Canny", 640, 0);
