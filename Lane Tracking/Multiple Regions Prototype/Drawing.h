@@ -12,25 +12,25 @@ void DrawLine( Mat img, Point start, Point end );
 void DrawBorders(Mat *src, bool borderCondition, int minRow, int maxRow, double k1,double k2,double m1,double m2);
 
 
-void DrawLine( Mat img, Point start, Point end )
+void DrawLine( Mat img, Point start, Point end ,Scalar color)
 {
   int thickness = 2;
   int lineType = 1;
   line( img,
        start,
        end,
-       Scalar( 0, 255, 0 ),
+       color,//Scalar( 0, 255, 0 ),
        thickness,
        lineType );
 }
 
-void DrawTracks(cv::Mat *src,Eigen::MatrixXd *k,Eigen::MatrixXd *m,int minRow, int maxRow)
+void DrawTracks(cv::Mat *src,Eigen::MatrixXd *k,Eigen::MatrixXd *m,int minRow, int maxRow,Scalar color)
 {
   int nRows = src->rows;
   for (int i = 0; i<k->rows();i++)
   {
     if (k->col(0)(i) !=0 || m->col(0)(i) !=0) {
-      DrawLine(*src,Point((nRows*k->col(0)(i)+m->col(0)(i)),nRows), Point((minRow*k->col(0)(i)+m->col(0)(i)),minRow));
+      DrawLine(*src,Point((nRows*k->col(0)(i)+m->col(0)(i)),nRows), Point((minRow*k->col(0)(i)+m->col(0)(i)),minRow),color);
     }
   }
 }

@@ -35,26 +35,26 @@ void SelectClosestLines(Eigen::MatrixXd *pointsPerRegion,Eigen::MatrixXd *region
     regionIndex->col(0)(1)=pointsPerRegion->rows()-1;
 }
 
-double GetLateralPosition(double K1,double K2, double M1,double M2,double MAXROW)
+double GetLateralPosition(double K1,double M1, double K2,double M2,double kMid,double mMid,double MAXROW)
 {
   double laneWidth = 3.5;
   double centerLane = ((K2 * MAXROW + M2) + (K1 * MAXROW + M1) ) / 2.0;
   double pixelLaneWidth = abs((K2 * MAXROW + M2) - (K1 * MAXROW + M1) );
   double pixelsPerMeter = pixelLaneWidth / laneWidth;
-  double offset = 320-centerLane;
+  double offset = (kMid*MAXROW+mMid)-centerLane;
   
   return offset / (pixelsPerMeter);
   
   
 }
 
-void AddMomentum(Eigen::MatrixXd &K, Eigen::MatrixXd &kPrev,Eigen::MatrixXd &M,Eigen::MatrixXd &mPrev,double alpha)
+void AddMomentum(Eigen::MatrixXd &K, Eigen::MatrixXd &kPrev,Eigen::MatrixXd &M,Eigen::MatrixXd &mPrev,double alpha,Eigen::MatrixXd &regionIndex)
 {
-  
-  K = (1-alpha) * K + alpha * kPrev;
-  M = (1-alpha) * M + alpha * mPrev;
-  kPrev = K;
-  mPrev = M;
+  for (int i = 0;i<regionIndex.rows();i++)
+  {
+    K.row(i)(0) = (1-alpha) * K.row(i)(0) + alpha * kPrev.row(i)(0);
+    M.row(i)(0) = (1-alpha) * M.row(i)(0) + alpha * mPrev.row(i)(0);
+  }
   
 }
 
@@ -116,18 +116,11 @@ void SelectLaneOrientation(Eigen::MatrixXd &regionIndex,Eigen::VectorXd &laneLoc
     if (laneLocation.row(i)(0)<=nRegions/2-1)
       nLeftTracks++;
   }
+  if (nLeftTracks == 0)
+    nLeftTracks++;
   nRightTracks = nTracks - nLeftTracks;
   regionIndex.row(0)(0) = laneLocation.row(nLeftTracks-1)(0);
   regionIndex.row(1)(0) = laneLocation.row(nTracks-nRightTracks)(0);
-  /*
-  if (laneLocation.row(0)(0) <= 3 && laneLocation.row(1)(0) <= 3){
-    regionIndex.row(0)(0) = laneLocation.row(1)(0);
-    regionIndex.row(1)(0) = laneLocation.row(2)(0);
-  }
-  else{
-    regionIndex.row(0)(0) = laneLocation.row(0)(0);
-    regionIndex.row(1)(0) = laneLocation.row(1)(0);
-  }*/
 }
 
 

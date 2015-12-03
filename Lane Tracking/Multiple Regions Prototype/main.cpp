@@ -15,6 +15,7 @@
 #include "ProcessImage.h"
 #include "DecisionMaking.h"
 #include <Eigen/Dense>
+#include <armadillo>
 
 using namespace std;
 using namespace cv;
@@ -58,7 +59,7 @@ int main(int argc, const char * argv[]) {
   Eigen::MatrixXd regions;
   CvCapture* capture;
   
-  if (0)
+  if (1)
   {
     //Rural
     ROWV = 100; COLV = 320;
@@ -110,7 +111,8 @@ int main(int argc, const char * argv[]) {
                 489,  278,  634,  339,
                 579,  279,  636,  297;
   }
-  
+  int nFrames = (int) cvGetCaptureProperty(capture, CV_CAP_PROP_FRAME_COUNT);
+  arma::mat recordedArray = arma::zeros(nFrames,2);
   
   //Create a window
   namedWindow("1", 1);
@@ -138,16 +140,22 @@ int main(int argc, const char * argv[]) {
   
   // Road parameter. TODO: Implement the nIslands to decide how many detected road markings found...
   int nTracks = 4;
+  int iFrame = 0;
   while(1) {
     // Get frame
     src = cvQueryFrame(capture);
+    
+    if (src.empty()){
+      cout<<"End of video file"<<endl;
+      break;
+    }
     resize(src, src, Size(640,480),0,0,INTER_CUBIC);
     
     // Process frame
     cvtColor(src, IMG, CV_BGR2GRAY);
     threshold(IMG, image, 150, 255, 0);
-    //GaussianBlur(src, src, Size(5,5), 1);
-    //Canny(src, image, T1, T2);
+    GaussianBlur(src, src, Size(5,5), 1);
+    Canny(src, image, T1, T2);
     
     Eigen::MatrixXd recoveredPoints(nPoints,lines.rows()+2);
     
@@ -161,8 +169,6 @@ int main(int argc, const char * argv[]) {
     // Based on the points, extract the lines and get a solution based on the data
     ExtractLines(&recoveredPoints,&K,&M,nRegions,nPoints,&pointsPerRegion);
     
-    //Add momentum
-    AddMomentum(K,kPrev,M,mPrev,alpha); 
     
     Eigen::MatrixXd regionIndex(2,1);
     Eigen::VectorXd ppr = pointsPerRegion;
@@ -173,22 +179,46 @@ int main(int argc, const char * argv[]) {
     cout<<"---"<<endl;
     cout<<laneLocation2.transpose()<<endl;
     
-    SelectLaneOrientation(regionIndex,laneLocation2,recoveredPoints.cols());
+    SelectLaneOrientation(regionIndex,laneLocation2,(int)recoveredPoints.cols());
     int p1 = regionIndex(0,0), p2 = regionIndex(1,0);
     
-    //DrawTracks(&src, &K, &M,MINROW,MAXROW);
+    //Add momentum
+    AddMomentum(K,kPrev,M,mPrev,alpha,regionIndex);
+    kPrev = K;
+    mPrev = M;
+    
+    //DrawTracks(&src, &K, &M,MINROW,MAXROW,Scalar(0,0,255));
     DrawBorders(&src,1,MINROW,MAXROW,K(p1,0),K(p2,0),M(p1,0),M(p2,0));
     Eigen::MatrixXd k = lines.col(0);
     Eigen::MatrixXd m = lines.col(1);
-    DrawTracks(&src, &k,&m,MINROW,MAXROW);
-    //double laneOffset = GetLateralPosition(K(p1,0),K(p2,0),M(p1,0),M(p2,0),(MAXROW+MINROW) /2.0);
-    //cout<<"Lane offset:"<<laneOffset<<endl;
+    int midRegion = 4;
+
+    DrawTracks(&src, &k,&m,MINROW,MAXROW,Scalar(255,255,255));
+    double laneOffset = GetLateralPosition(K(p1,0),M(p1,0),
+                                           K(p2,0),M(p2,0),
+                                           lines.col(0)(midRegion),lines.col(1)(midRegion),
+                                           (MAXROW+MINROW) /2.0);
+    cout<<"Lane offset:"<<laneOffset<<endl;
     //cout<<(float)(clock()-begin) / CLOCKS_PER_SEC<<endl;
     // Show image
+    
     imshow("1", src);
     moveWindow("1", 0, 0);
     imshow("Canny",image);
     moveWindow("Canny", 640, 0);
+    
+    char key = (char)waitKey(0);
+    if (key == 'y')
+    {
+      recordedArray(iFrame,0) = 1;
+      recordedArray(iFrame,1) = laneOffset;
+    } else if ( key == 'n')
+    {
+      recordedArray(iFrame,0) = 0;
+    } else if ( key == 27)
+      break;
+    iFrame++;
+    /*
     // Key press events
     char key = (char)waitKey(1); //time interval for reading key input;
     if(key == 'q' || key == 'Q' || key == 27)
@@ -197,9 +227,13 @@ int main(int argc, const char * argv[]) {
       waitKey(0);
     cout<<testPos<<endl;
       waitKey(0);
+
     }
+    */
     //
   }
+  int process = recordedArray.save("/Users/batko/Desktop/data.mat",arma::raw_ascii);
+  cout<<process<<endl;
   cvReleaseCapture(&capture);
   cvDestroyWindow("Example3");
   return 0;
