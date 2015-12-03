@@ -66,13 +66,21 @@ int main(int argc, const char * argv[]) {
     MINROW = 150; MAXROW = 300;
     T1 = 200; T2 = 300;
     capture = cvCreateFileCapture("/Users/batko/Downloads/rural.avi");
-    regions = *new Eigen::MatrixXd(5,4);
+    regions = *new Eigen::MatrixXd(7,4);
     //region = col1,row1, col2,row2
-    regions <<  0,    250,  320,  100,
+    /*regions <<  0,    250,  320,  100,
                 220,  250,  320,  100,
                 320,  250,  320,  100,
                 420,  250,  320,  100,
                 640,  250,  320,  100;
+    */
+    regions <<  178, 148,7,          207,
+    214,          146,            3,          248,
+    286,          150,          189,          301,
+    321,          148,          321,          298,
+    345,          150,          453,          300,
+    427,          147,          622,          241,
+    457,          147,          630,          213;
     
     
   } else if(0)
@@ -110,6 +118,7 @@ int main(int argc, const char * argv[]) {
                 465,  280,  613,  388,
                 489,  278,  634,  339,
                 579,  279,  636,  297;
+
   }
   int nFrames = (int) cvGetCaptureProperty(capture, CV_CAP_PROP_FRAME_COUNT);
   arma::mat recordedArray = arma::zeros(nFrames,2);
@@ -122,7 +131,7 @@ int main(int argc, const char * argv[]) {
   
   Mat image,src,IMG;
   // Set nPoints...but also check so it does not exceed.
-  int nPoints = 50, nMaxPoints = MAXROW-MINROW;
+  int nPoints = 40000, nMaxPoints = MAXROW-MINROW;
 
   if (nPoints > nMaxPoints)
     nPoints = nMaxPoints;
@@ -145,15 +154,15 @@ int main(int argc, const char * argv[]) {
     // Get frame
     src = cvQueryFrame(capture);
     
-    if (src.empty()){
+    if (src.empty() || iFrame == nFrames){
       cout<<"End of video file"<<endl;
       break;
     }
     resize(src, src, Size(640,480),0,0,INTER_CUBIC);
     
     // Process frame
-    cvtColor(src, IMG, CV_BGR2GRAY);
-    threshold(IMG, image, 150, 255, 0);
+    //cvtColor(src, IMG, CV_BGR2GRAY);
+    //threshold(IMG, image, 150, 255, 0);
     GaussianBlur(src, src, Size(5,5), 1);
     Canny(src, image, T1, T2);
     
@@ -172,9 +181,10 @@ int main(int argc, const char * argv[]) {
     
     Eigen::MatrixXd regionIndex(2,1);
     Eigen::VectorXd ppr = pointsPerRegion;
-    Eigen::VectorXd laneLocation2 = Eigen::VectorXd::Zero(nTracks, 1);
+    Eigen::VectorXd laneLocation2 = Eigen::VectorXd::Zero(nRegions, 1);
 
-    SelectLanes(ppr, laneLocation2, nTracks);
+    SelectLanesV2(ppr, laneLocation2, nTracks);
+
     cout<<ppr.transpose()<<endl;
     cout<<"---"<<endl;
     cout<<laneLocation2.transpose()<<endl;
@@ -191,33 +201,34 @@ int main(int argc, const char * argv[]) {
     DrawBorders(&src,1,MINROW,MAXROW,K(p1,0),K(p2,0),M(p1,0),M(p2,0));
     Eigen::MatrixXd k = lines.col(0);
     Eigen::MatrixXd m = lines.col(1);
-    int midRegion = 4;
+    int midRegion = (int)(lines.rows()-1)/2;
 
     DrawTracks(&src, &k,&m,MINROW,MAXROW,Scalar(255,255,255));
     double laneOffset = GetLateralPosition(K(p1,0),M(p1,0),
                                            K(p2,0),M(p2,0),
                                            lines.col(0)(midRegion),lines.col(1)(midRegion),
-                                           (MAXROW+MINROW) /2.0);
+                                           (MAXROW));
     cout<<"Lane offset:"<<laneOffset<<endl;
     //cout<<(float)(clock()-begin) / CLOCKS_PER_SEC<<endl;
     // Show image
+    
     
     imshow("1", src);
     moveWindow("1", 0, 0);
     imshow("Canny",image);
     moveWindow("Canny", 640, 0);
-    
+  
     char key = (char)waitKey(0);
+
     if (key == 'y')
     {
       recordedArray(iFrame,0) = 1;
-      recordedArray(iFrame,1) = laneOffset;
-    } else if ( key == 'n')
-    {
-      recordedArray(iFrame,0) = 0;
     } else if ( key == 27)
       break;
+    
     iFrame++;
+    cout<<iFrame/(double)nFrames<<endl;
+    
     /*
     // Key press events
     char key = (char)waitKey(1); //time interval for reading key input;
@@ -228,12 +239,13 @@ int main(int argc, const char * argv[]) {
     cout<<testPos<<endl;
       waitKey(0);
 
-    }
-    */
+    }*/
+    
     //
   }
-  int process = recordedArray.save("/Users/batko/Desktop/data.mat",arma::raw_ascii);
+  int process = recordedArray.save("/Users/batko/Desktop/dataRural.mat",arma::raw_ascii);
   cout<<process<<endl;
+  cout<<"nFrames"<<" "<<nFrames<<endl;
   cvReleaseCapture(&capture);
   cvDestroyWindow("Example3");
   return 0;

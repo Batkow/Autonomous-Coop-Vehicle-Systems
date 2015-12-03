@@ -58,6 +58,41 @@ void AddMomentum(Eigen::MatrixXd &K, Eigen::MatrixXd &kPrev,Eigen::MatrixXd &M,E
   
 }
 
+void SelectLanesV2(Eigen::VectorXd &numberOfPoints,Eigen::VectorXd &laneLocation, int maxTracks)
+{
+  int nTracks = 0, leftMidPoint = (int)numberOfPoints.rows()/2-1;
+  int pos;
+  for (int i = 0; i <numberOfPoints.rows();i++)
+  {
+    if (numberOfPoints.row(i)(0) != 0)
+    {
+      if ( i ==leftMidPoint && numberOfPoints.row(i+1)(0) !=0)
+      {
+        numberOfPoints.segment(i, 2).maxCoeff(&pos);
+        cout<<pos<<endl;
+        laneLocation.row(nTracks)(0)=i+pos;
+        i++;
+      }
+      else
+      {
+        laneLocation.row(nTracks)(0)=i;
+      }
+      nTracks++;
+    }
+  }
+  
+  if (nTracks < laneLocation.rows())
+  {
+    for (int i=laneLocation.rows()-1;i>nTracks-1;i--)
+    {
+      removeRow(laneLocation, i);
+      
+    }
+  }
+  
+  
+}
+
 void SelectLanes(Eigen::VectorXd &numberOfPoints,Eigen::VectorXd &laneLocation, int maxTracks)
 {
   int nIsland = 0;
