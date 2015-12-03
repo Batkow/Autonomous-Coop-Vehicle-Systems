@@ -61,8 +61,8 @@ void ScanImage(cv::Mat *img, Eigen::MatrixXd *lines,Eigen::MatrixXd *recoveredPo
 
 void removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove)
 {
-  unsigned int numRows = matrix.rows()-1;
-  unsigned int numCols = matrix.cols();
+  unsigned int numRows = (int)matrix.rows()-1;
+  unsigned int numCols = (int)matrix.cols();
   
   if( rowToRemove < numRows )
     matrix.block(rowToRemove,0,numRows-rowToRemove,numCols) = matrix.block(rowToRemove+1,0,numRows-rowToRemove,numCols);
@@ -72,8 +72,8 @@ void removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove)
 
 void removeRow(Eigen::VectorXd& matrix, unsigned int rowToRemove)
 {
-  unsigned int numRows = matrix.rows()-1;
-  unsigned int numCols = matrix.cols();
+  unsigned int numRows = (int)matrix.rows()-1;
+  unsigned int numCols = (int)matrix.cols();
   
   if( rowToRemove < numRows )
     matrix.block(rowToRemove,0,numRows-rowToRemove,numCols) = matrix.block(rowToRemove+1,0,numRows-rowToRemove,numCols);
@@ -115,7 +115,7 @@ void LinearSolve(Eigen::MatrixXd *dataPoints, double *k, double *m)
 // EIGEN VERSION
 void ExtractLines(Eigen::MatrixXd *RECOVEREDPOINTS,Eigen::MatrixXd *KCOEFF,
                   Eigen::MatrixXd *MCOEFF,long nRegions,int nPoints,
-                  Eigen::MatrixXd *pointsPerRegion)
+                  Eigen::VectorXd *pointsPerRegion)
 {
   for (int i=0; i<nRegions; i++) {
     Eigen::MatrixXd tmpMat(nPoints,2);

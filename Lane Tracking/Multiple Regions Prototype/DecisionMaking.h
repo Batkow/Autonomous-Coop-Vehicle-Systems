@@ -8,7 +8,7 @@ using namespace cv;
 
 void SelectClosestLines(Eigen::MatrixXd *pointsPerRegion,Eigen::MatrixXd *regionIndex)
 {
-  int midRegion = (pointsPerRegion->rows()) / 2;
+  int midRegion = (int)(pointsPerRegion->rows()) / 2;
   
   //Left lane
   bool leftLaneSet = 0;
@@ -58,7 +58,7 @@ void AddMomentum(Eigen::MatrixXd &K, Eigen::MatrixXd &kPrev,Eigen::MatrixXd &M,E
   
 }
 
-void SelectLanesV2(Eigen::VectorXd &numberOfPoints,Eigen::VectorXd &laneLocation, int maxTracks)
+void SelectLanesV2(Eigen::VectorXd &numberOfPoints,Eigen::VectorXd &laneLocation)
 {
   int nTracks = 0, leftMidPoint = (int)numberOfPoints.rows()/2-1;
   int pos;
@@ -83,7 +83,7 @@ void SelectLanesV2(Eigen::VectorXd &numberOfPoints,Eigen::VectorXd &laneLocation
   
   if (nTracks < laneLocation.rows())
   {
-    for (int i=laneLocation.rows()-1;i>nTracks-1;i--)
+    for (int i=(int)laneLocation.rows()-1;i>nTracks-1;i--)
     {
       removeRow(laneLocation, i);
       
@@ -129,7 +129,7 @@ void SelectLanes(Eigen::VectorXd &numberOfPoints,Eigen::VectorXd &laneLocation, 
   
   if (nIsland < maxTracks)
   {
-    for (int i=laneLocation.rows()-1;i>nIsland-1;i--)
+    for (int i=(int)laneLocation.rows()-1;i>nIsland-1;i--)
     {
       removeRow(laneLocation, i);
       
@@ -143,7 +143,7 @@ void SelectLanes(Eigen::VectorXd &numberOfPoints,Eigen::VectorXd &laneLocation, 
 
 void SelectLaneOrientation(Eigen::MatrixXd &regionIndex,Eigen::VectorXd &laneLocation,int nRegions)
 {
-  int nTracks = laneLocation.rows();
+  int nTracks = (int)laneLocation.rows();
   int nLeftTracks = 0;
   int nRightTracks = 0;
   for ( int i = 0;i<nTracks;i++)
@@ -153,7 +153,10 @@ void SelectLaneOrientation(Eigen::MatrixXd &regionIndex,Eigen::VectorXd &laneLoc
   }
   if (nLeftTracks == 0)
     nLeftTracks++;
+  
   nRightTracks = nTracks - nLeftTracks;
+  if (nRightTracks == 0)
+    nRightTracks++;
   regionIndex.row(0)(0) = laneLocation.row(nLeftTracks-1)(0);
   regionIndex.row(1)(0) = laneLocation.row(nTracks-nRightTracks)(0);
 }
