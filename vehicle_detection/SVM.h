@@ -20,6 +20,7 @@ using namespace cv;
 void SetSVMParams(CvSVMParams* params) {
     // Set up SVM's parameters
     params->svm_type    = CvSVM::C_SVC;
-    params->kernel_type = CvSVM::LINEAR;
-    params->term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 1000, 1e-6);
+    params->C = 0.1;
+    params->kernel_type = CvSVM::RBF;
+    params->term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 1e7, 1e-6);
 }

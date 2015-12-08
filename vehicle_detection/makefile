@@ -18,7 +18,8 @@ INCLUDEPATH_b = -I/usr/include/opencv2
 INCLUDEPATH_s += -I/usr/local/Cellar/eigen/3.2.6/include/eigen3
 INCLUDEPATH_b += -I/usr/include/eigen3
 
-ARGUMENTS_b = "/home/plankton/Videos/highway.avi"
+ARGUMENTS_b = "/home/plankton/Videos/rostock.avi"
+#ARGUMENTS_b = "/home/plankton/Videos/highway.avi"
 ARGUMENTS_s = "/Users/tempuser/Documents/highway.avi"
 
 	#$(CC) $(CFLAGS) $(EXECUTABLE) $(SOURCES) $(LIBPATH) $(LIB) $(INCLUDEPATH) $(FRAMEWORK)
@@ -36,5 +37,5 @@ svm_example:
 	./$(SVM_EXECUTABLE) "trained_svm.xml"
 
 svm_train: 
-	$(CC) $(CFLAGS) TrainSVM.exe TrainSVM.cpp $(LIBPATH_b) -lopencv_core -lopencv_highgui -lopencv_ml $(INCLUDEPATH_b)
+	$(CC) $(CFLAGS) TrainSVM.exe TrainSVM.cpp $(LIBPATH_b) $(LIB) $(INCLUDEPATH_b)
 	./TrainSVM.exe "training_data_folder" "trained_svm.xml"

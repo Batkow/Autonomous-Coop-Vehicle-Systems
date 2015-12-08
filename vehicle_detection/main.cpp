@@ -46,11 +46,14 @@ int main(int argc, const char * argv[]) {
   regions << -60, COLV,700,MAXROW;
 
 
-  Mat image,src,IMG;
+  Mat src,IMG,imageROI;
 
 
   // Load Haar classifier (used for generating hypotheses)
   CascadeClassifier haarClassifier = CascadeClassifier(haarClassPath);
+  if (haarClassifier.empty()) {
+    cout << "LOADED HAAR CLASSIFIER WAS EMPTY!!!\n";
+  }
   
   // Load Feature evaluator (used for extracting Haar features)
   FileStorage fs(haarClassPath, FileStorage::READ);
@@ -80,21 +83,26 @@ int main(int argc, const char * argv[]) {
   //cout << "Length of feature vector: " << sizeof(featureVector)/sizeof(featureVector[0]) << " \n";
 
   vector<Rect> detectedVehicles;
+  int roiY = 200;
+  Rect regionOfInterest(0, roiY, 640, 480-roiY);
   
+  cout << "Just before video loop \n";
   while(1) {
     
+    //cout << "Inside video loop \n";
     // Get frame
-    int frameSkip = 1;
+    int frameSkip = 2;
     for (int i=0; i<frameSkip; i++) {
       src = cvQueryFrame(capture);
     }
-
     resize(src, src, Size(640,480),0,0,INTER_CUBIC);
-    //resize(src, image, Size(640,480),0,0,INTER_CUBIC);
+    //resize(src, src, Size(320,240),0,0,INTER_CUBIC);
+
+    imageROI = src(regionOfInterest);
     clock_t begin = clock();
     // Process frame
 
-    GaussianBlur(src, src, Size(5,5), 1);
+    //GaussianBlur(src, src, Size(3,3), 1);
     /*
     GaussianBlur(src, src, Size(5,5), 1);
     Canny(src, image, T1, T2);
@@ -110,10 +118,19 @@ int main(int argc, const char * argv[]) {
     */
 
     // trying Haar stuff
-    haarClassifier.detectMultiScale(src, detectedVehicles);
+    //imshow("Vehicle detection", src);
+    //waitKey(0);
+    //cout << "Before detectMultiScale  \n";
+    //haarClassifier.detectMultiScale(imageROI, detectedVehicles);
+    //haarClassifier.detectMultiScale(src, detectedVehicles, 1.05, 1, 0 | CASCADE_FIND_BIGGEST_OBJECT, Size(20, 20), Size(150, 150));
+    haarClassifier.detectMultiScale(imageROI, detectedVehicles, 1.01, 3, 0 | CASCADE_FIND_BIGGEST_OBJECT, Size(10, 10), Size(150, 150));
+    //haarClassifier.detectMultiScale(imageROI, detectedVehicles, 1.1, 3, 0 | CASCADE_FIND_BIGGEST_OBJECT, Size(20, 20), Size(150, 150));
+    //cout << "Just before for loop \n";
     for (size_t i = 0; i < detectedVehicles.size(); i++)
     {
+      //cout << "Inside for loop \n";
       Rect r = detectedVehicles[i];
+      r.y += roiY;
       // Extract Haar features and throw them into a trained SVM
       FileNodeIterator it = featuresNode.begin(), it_end = featuresNode.end();
       ptrHaar->setImage(src, Size(r.width, r.height));
@@ -131,22 +148,24 @@ int main(int argc, const char * argv[]) {
       //cout << "After loop \n";
       Mat featureMat(nrOfFeatures, 1, CV_32FC1, featureVector);
       // The following line will crash if wrong number of inputs to SVM!
-      //float response = mySVM.predict(featureMat);
-      float response = 0;
-
+      float response = mySVM.predict(featureMat);
+      //float response = 0;
+      //cout << "SVM response: " << response << "\n";
 
       if (response > 0) {
         // if this rectangle gets verified by SVM, draw green
         rectangle(src, r, Scalar(0,255,0));
       } else {
         // otherwise, if not verified, draw red
-        rectangle(src, r, Scalar(0,0,255));
+        //rectangle(src, r, Scalar(0,0,255));
       }
     }
     
     //cout<<(float)(clock()-begin) / CLOCKS_PER_SEC<<endl;
     
-    
+    // display region of interest
+    rectangle(src, regionOfInterest, Scalar(255, 0, 255));
+
     // Show image
     imshow("Vehicle detection", src);
     moveWindow("Vehicle detection", 100, 0);
@@ -156,6 +175,7 @@ int main(int argc, const char * argv[]) {
     if(key == 'q' || key == 'Q' || key == 27)
       break;
   }
+  cout << "Just after video loop \n";
   cvReleaseCapture(&capture);
   cvDestroyWindow("Vehicle detection");
   return 0;
