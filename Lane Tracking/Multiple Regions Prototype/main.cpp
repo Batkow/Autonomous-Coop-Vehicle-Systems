@@ -62,11 +62,12 @@ int main(int argc, const char * argv[]) {
   Eigen::MatrixXd regions;
   CvCapture* capture;
   int canny, ROWV,COLV,MINROW,MAXROW,T1,T2;
+  int width = 400, height = 300;
   
   //-----------------------------
   // Choice of video source
   //-----------------------------
-  if (0)
+  if (1)
   {
     //-----------------------------
     //Rural.avi video
@@ -129,6 +130,14 @@ int main(int argc, const char * argv[]) {
     canny = 0;
 
   }
+  //-----------------------------
+  // Scaling: Calibrations were made for 640x480 resolution
+  //-----------------------------
+  MINROW = MINROW * ( height / 480.0); MAXROW = MAXROW * (height / 480.0);
+  regions.col(0) = regions.col(0) * ( width / 640.0);
+  regions.col(2) = regions.col(2) * ( width / 640.0);
+  regions.col(1) = regions.col(1) * ( height / 480.0);
+  regions.col(3) = regions.col(3) * ( height / 480.0);
   
   //-----------------------------
   // Video properties
@@ -231,7 +240,7 @@ int main(int argc, const char * argv[]) {
     //-----------------------------
     // Re-size the source image
     //-----------------------------
-    resize(src, src, Size(640,480),0,0,INTER_CUBIC);
+    resize(src, src, Size(width,height),0,0,INTER_CUBIC);
     
     //-----------------------------
     // Choose processing type

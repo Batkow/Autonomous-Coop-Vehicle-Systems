@@ -5,13 +5,6 @@
 
 using namespace cv;
 
-// Draw track lines
-void DrawLine( Mat img, Point start, Point end );
-
-// Draw the borders
-void DrawBorders(Mat *src, bool borderCondition, int minRow, int maxRow, double k1,double k2,double m1,double m2);
-
-
 void DrawLine( Mat img, Point start, Point end ,Scalar color)
 {
   int thickness = 2;
