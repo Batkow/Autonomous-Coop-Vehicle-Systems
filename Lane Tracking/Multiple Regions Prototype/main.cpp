@@ -62,12 +62,12 @@ int main(int argc, const char * argv[]) {
   Eigen::MatrixXd regions;
   CvCapture* capture;
   int canny, ROWV,COLV,MINROW,MAXROW,T1,T2;
-  int width = 400, height = 300;
+  int width = 800, height = 600;
   
   //-----------------------------
   // Choice of video source
   //-----------------------------
-  if (1)
+  if (0)
   {
     //-----------------------------
     //Rural.avi video
@@ -203,7 +203,7 @@ int main(int argc, const char * argv[]) {
   int midRegion = (int)(lines.rows()-1)/2;
   
   // Armadillo matrix to store lane offset for analysis
-  arma::mat recordedArray = arma::zeros(nFrames,2);
+  arma::mat recordedArray = arma::zeros(nFrames,3);
   
   
   //-----------------------------
@@ -236,12 +236,11 @@ int main(int argc, const char * argv[]) {
     src = cvQueryFrame(capture);
     if (src.empty() || iFrame == nFrames){
       cout<<"End of video file"<<endl; break; }
-    
     //-----------------------------
     // Re-size the source image
     //-----------------------------
     resize(src, src, Size(width,height),0,0,INTER_CUBIC);
-    
+    clock_t begin = clock();
     //-----------------------------
     // Choose processing type
     //-----------------------------
@@ -277,9 +276,9 @@ int main(int argc, const char * argv[]) {
     SelectLanesV2(pointsPerRegion, laneLocation2);
     SelectLaneOrientation(regionIndex,laneLocation2,(int)recoveredPoints.cols());
     p1 = regionIndex(0,0), p2 = regionIndex(1,0);
-    cout<<pointsPerRegion.transpose()<<endl;
+    /*cout<<pointsPerRegion.transpose()<<endl;
     cout<<"---"<<endl;
-    cout<<laneLocation2.transpose()<<endl;
+    cout<<laneLocation2.transpose()<<endl;*/
     
     
     //-----------------------------
@@ -305,31 +304,40 @@ int main(int argc, const char * argv[]) {
                                     K(p2,0),M(p2,0),
                                     lines.col(0)(midRegion),lines.col(1)(midRegion),
                                     (MAXROW));
-    cout<<"Lane offset:"<<laneOffset<<endl;
-    
+    //cout<<"Lane offset:"<<laneOffset<<endl;
+    float timeTaken = (float)(clock()-begin) / CLOCKS_PER_SEC;
     
     //-----------------------------
     // Show image
     //-----------------------------
     imshow("1", src);
-    imshow("Canny",image);
+    //imshow("Canny",image);
     
   
     //-----------------------------
     //Key press events
     //-----------------------------
-    char key = (char)waitKey(1); //time interval for reading key input;
+    /*char key = (char)waitKey(1); //time interval for reading key input;
     if(key == 'q' || key == 'Q' || key == 27)
       break;
     else if (key =='s'){
       waitKey(0);
       cout<<testPos<<endl;
       waitKey(0);
+    }*/
+    char key = (char)waitKey(0);
+    if  ( key == 'y') {
+      recordedArray(iFrame,0) = 1;
+      recordedArray(iFrame,1) = laneOffset;
+      recordedArray(iFrame,2) = timeTaken;
     }
+    iFrame++;
+      
+    
     
     
   }
-  //int process = recordedArray.save("/Users/batko/Desktop/dataRural.mat",arma::raw_ascii);
+  int process = recordedArray.save("/Users/batko/Desktop/dataRostockOriginal.mat",arma::raw_ascii);
   //cout<<process<<endl;
   //cout<<"nFrames"<<" "<<nFrames<<endl;
   cvReleaseCapture(&capture);

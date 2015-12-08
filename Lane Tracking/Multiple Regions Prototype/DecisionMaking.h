@@ -69,7 +69,6 @@ void SelectLanesV2(Eigen::VectorXd &numberOfPoints,Eigen::VectorXd &laneLocation
       if ( i ==leftMidPoint && numberOfPoints.row(i+1)(0) !=0)
       {
         numberOfPoints.segment(i, 2).maxCoeff(&pos);
-        cout<<pos<<endl;
         laneLocation.row(nTracks)(0)=i+pos;
         i++;
       }
