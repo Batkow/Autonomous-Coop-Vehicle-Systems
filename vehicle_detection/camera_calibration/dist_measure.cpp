@@ -66,9 +66,17 @@ int main(int argc, const char * argv[]) {
 		cout << "Could not open XML file : \""<< camMatrixXMLFile << "\"" << endl;
 		return -1;
 	}
-	//Mat camMatrix;
+	Mat camMatrix;
+	fs["data"] >> camMatrix;
+	
+	cout << "camera matrix: " << camMatrix << endl;
+	/*
 	FileNode camMatrix = fs["data"];
+	int noOfFeatures = camMatrix.size();
+	double featureVector[noOfFeatures];
+	cout << noOfFeatures << "\n";
 	//fs["Camera_Matrix"] >> cm;
+	*/
 	fs.release();
 	
 	//camMatrix = cm.cam_mat_data;
