@@ -15,6 +15,7 @@
 #include <opencv2/ml/ml.hpp>
 #include <ctime>
 #include <Eigen/Dense>
+#include <fstream>
 
 using namespace std;
 using namespace cv;
@@ -22,6 +23,7 @@ using namespace cv;
 int ROWV,COLV,MINROW,MAXROW,T1,T2;
 const char * haarClassPath = "haar_classifiers/currently_used_classifier.xml";
 const char * svmPath = "trained_svm.xml";
+const char * normConstPath = "svm_normalization_const.csv";
 bool exportHaarImages = false;
 string haarImgExport = "tmp_img/";
 int haarExportCounter = 0;
@@ -70,6 +72,18 @@ int main(int argc, const char * argv[]) {
   // Load the Support Vector Machine used for verification
   CvSVM mySVM;
   mySVM.load(svmPath);
+  float rescalingConstants[nrOfFeatures][2];
+  ifstream normConstFile;
+  normConstFile.open(normConstPath);
+  if (!normConstFile) {
+    cout << "Unable to open file " << normConstPath << "\n";
+  }
+  for (int i=0; i<nrOfFeatures; i++) {
+    normConstFile >> rescalingConstants[i][0];
+    normConstFile >> rescalingConstants[i][1];
+    //cout << rescalingConstants[i][0] << " ";
+    //cout << rescalingConstants[i][1] << "\n";
+  }
 
   /*
   // Set nPoints...but also check so it does not exceed.
@@ -86,9 +100,12 @@ int main(int argc, const char * argv[]) {
   //cout << "Number of Haar features:  " << nrOfFeatures << " \n";
   //cout << "Length of feature vector: " << sizeof(featureVector)/sizeof(featureVector[0]) << " \n";
 
+  int windowWidth = 800;
+  int windowHeight = 600;
+
   vector<Rect> detectedVehicles;
   int roiY = 200;
-  Rect regionOfInterest(0, roiY, 640, 480-roiY);
+  Rect regionOfInterest(0, roiY, windowWidth, windowHeight-roiY);
   
   cout << "Just before video loop \n";
   while(1) {
@@ -99,7 +116,7 @@ int main(int argc, const char * argv[]) {
     for (int i=0; i<frameSkip; i++) {
       src = cvQueryFrame(capture);
     }
-    resize(src, src, Size(640,480),0,0,INTER_CUBIC);
+    resize(src, src, Size(windowWidth,windowHeight),0,0,INTER_CUBIC);
     //resize(src, src, Size(320,240),0,0,INTER_CUBIC);
 
     imageROI = src(regionOfInterest);
@@ -156,6 +173,13 @@ int main(int argc, const char * argv[]) {
       //cout << "Before loop \n";
       while (it != it_end) {
         featureVector[idx] = ptrHaar->calcOrd(idx);
+        if (rescalingConstants[idx][1] > 0) {
+          //cout << "currently rescaling feature " << idx << ": oldValue=" << featureVector[idx];
+          float myMean = rescalingConstants[idx][0];
+          float myStd = rescalingConstants[idx][1];
+          featureVector[idx] = (featureVector[idx]-myMean)/myStd;
+          //cout << "\tnewValue="<< featureVector[idx] << "\n";
+        }
         //cout << "Feature number " << idx << " : " << res << "\n";
         it++;
         idx++;

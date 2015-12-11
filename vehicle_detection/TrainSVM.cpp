@@ -13,10 +13,31 @@
 #include <opencv2/objdetect/objdetect.hpp>
 #include <opencv2/ml/ml.hpp>
 #include "SVM.h"
+#include <math.h>
+#include <fstream>
 
 using namespace std;
 using namespace cv;
 
+
+float calcMean(Mat input) {
+    int nrElems = input.cols * input.rows;
+    double sum = 0;
+    for (int i=0; i<nrElems; i++) {
+        sum += input.at<float>(i);
+    }
+    //cout << "Inside calcMean(): sum=" << sum << ", nrElems=" << nrElems << ", mean=" << sum/nrElems << "\n";
+    return (float)(sum/nrElems);
+}
+
+float calcStd(Mat input, float mean) {
+    int nrElems = input.cols * input.rows;
+    double sum = 0;
+    for (int i=0; i<nrElems; i++) {
+        sum += pow(input.at<float>(i) - mean, 2);
+    }
+    return (float)sqrt(sum/nrElems);
+}
 
 
 int main(int argc, const char * argv[]) {
@@ -174,32 +195,47 @@ int main(int argc, const char * argv[]) {
     }
     //waitKey(0);
 
+
     Mat labelsMat(totalTrainingSetSize, 1, CV_32FC1, labels);
     Mat trainingDataMat(totalTrainingSetSize, nrFeatures, CV_32FC1, trainingData);
 
     // TODO must rescale the data and store subtraction and scaling constants for each feature to file.
-    Mat m(1, 4, CV_64F), stdv(1, 4, CV_64F);
+    float rescalingConstants[nrFeatures][2];
     for (int j=0; j<trainingDataMat.cols; j++) {
         // for every feature, calculate mean and stddev, and then standardize the data
-        meanStdDev(trainingDataMat.col(j), m, stdv);
-        double featureMean = m.at<double>(0,0);
-        double featureStd = stdv.at<double>(0,0);
+        //cout << "Before\n";
+        //meanStdDev(trainingDataMat.col(j), m, stdv);
+        double featureMean = calcMean(trainingDataMat.col(j));
+        double featureStd = calcStd(trainingDataMat.col(j),  featureMean);
+        //cout << "After\n";
         cout << "Feature " << j << ". (mean, std) = (" << featureMean << ", " << featureStd << ")";
         for (int i=0; i<trainingDataMat.rows; i++) {
-            double prevValue = trainingDataMat.at<double>(i,j);
+            double prevValue = trainingDataMat.at<float>(i,j);
             double newValue = (prevValue - featureMean)/featureStd;
             //cout << i << ": (prev, new) - (" << prevValue << ", " << newValue << ")\n";
             //waitKey(0);
             trainingDataMat.at<float>(i,j) = (float)newValue;
         }
 
-        
-        meanStdDev(trainingDataMat.col(j), m, stdv);
-        featureMean = m.at<double>(0,0);
-        featureStd = stdv.at<double>(0,0);
-        cout << "\t -> (" << featureMean << ", " << featureStd << ")\n";
+        rescalingConstants[j][0] = featureMean;
+        rescalingConstants[j][1] = featureStd;
 
         
+        //meanStdDev(trainingDataMat.col(j), m, stdv);
+        featureMean = calcMean(trainingDataMat.col(j));
+        featureStd = calcStd(trainingDataMat.col(j),  featureMean);
+        cout << "\t -> (" << featureMean << ", " << featureStd << ")\n";        
+    }
+
+    ofstream normConstFile(normConstPath);
+    if (normConstFile.is_open()) {
+        for(int i = 0; i < nrFeatures; i++){
+            normConstFile << rescalingConstants[i][0] << " " << rescalingConstants[i][1] << "\n";
+        }
+        normConstFile.close();
+    }
+    else {
+        cout << "Unable to save normalisation constants to file";
     }
 /*
     float labels[6] = {
