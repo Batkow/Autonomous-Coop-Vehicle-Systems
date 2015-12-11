@@ -69,7 +69,6 @@ void SelectLanesV2(Eigen::VectorXd &numberOfPoints,Eigen::VectorXd &laneLocation
       if ( i ==leftMidPoint && numberOfPoints.row(i+1)(0) !=0)
       {
         numberOfPoints.segment(i, 2).maxCoeff(&pos);
-        cout<<pos<<endl;
         laneLocation.row(nTracks)(0)=i+pos;
         i++;
       }
@@ -89,54 +88,8 @@ void SelectLanesV2(Eigen::VectorXd &numberOfPoints,Eigen::VectorXd &laneLocation
       
     }
   }
-  
-  
 }
 
-void SelectLanes(Eigen::VectorXd &numberOfPoints,Eigen::VectorXd &laneLocation, int maxTracks)
-{
-  int nIsland = 0;
-  for (int i=0; i<numberOfPoints.rows();i++) {
-    Eigen::MatrixXd indexHolder(2,1);
-    int offset;
-    if (numberOfPoints.row(i)(0) !=0){
-      indexHolder(0,0) = i;
-      
-      if ( i == numberOfPoints.rows()-1) {
-        indexHolder(1,0) = i;
-        offset = i;
-        break;
-      } else if( numberOfPoints.row(i+1)(0) !=0){
-        indexHolder(1,0) = i+1;
-        offset = i;
-        i = i+1;
-      } else {
-        indexHolder(1,0) = i;
-        offset = i;
-        i = i+1;
-      }
-    
-      int pos;
-      numberOfPoints.segment(indexHolder(0,0), indexHolder(1,0)-indexHolder(0,0)+1).maxCoeff(&pos);
-      laneLocation.row(nIsland)(0) = pos+offset;
-      nIsland++;
-      if (nIsland == maxTracks) {
-        break;
-      }
-      
-    }
-  }
-  
-  if (nIsland < maxTracks)
-  {
-    for (int i=(int)laneLocation.rows()-1;i>nIsland-1;i--)
-    {
-      removeRow(laneLocation, i);
-      
-    }
-  }
-
-}
 
 
 
