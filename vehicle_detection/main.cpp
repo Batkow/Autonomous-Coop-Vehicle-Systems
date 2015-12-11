@@ -6,6 +6,7 @@
 //  Copyright © 2015 Ivo Batkovic. All rights reserved.
 //
 #include <iostream>
+//#include <sstream>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -21,6 +22,9 @@ using namespace cv;
 int ROWV,COLV,MINROW,MAXROW,T1,T2;
 const char * haarClassPath = "haar_classifiers/currently_used_classifier.xml";
 const char * svmPath = "trained_svm.xml";
+bool exportHaarImages = false;
+string haarImgExport = "tmp_img/";
+int haarExportCounter = 0;
 
 int main(int argc, const char * argv[]) {
   cout << "\n";
@@ -91,7 +95,7 @@ int main(int argc, const char * argv[]) {
     
     //cout << "Inside video loop \n";
     // Get frame
-    int frameSkip = 2;
+    int frameSkip = 5;
     for (int i=0; i<frameSkip; i++) {
       src = cvQueryFrame(capture);
     }
@@ -102,7 +106,7 @@ int main(int argc, const char * argv[]) {
     clock_t begin = clock();
     // Process frame
 
-    //GaussianBlur(src, src, Size(3,3), 1);
+    GaussianBlur(src, src, Size(3,3), 1);
     /*
     GaussianBlur(src, src, Size(5,5), 1);
     Canny(src, image, T1, T2);
@@ -122,12 +126,23 @@ int main(int argc, const char * argv[]) {
     //waitKey(0);
     //cout << "Before detectMultiScale  \n";
     //haarClassifier.detectMultiScale(imageROI, detectedVehicles);
-    //haarClassifier.detectMultiScale(src, detectedVehicles, 1.05, 1, 0 | CASCADE_FIND_BIGGEST_OBJECT, Size(20, 20), Size(150, 150));
-    haarClassifier.detectMultiScale(imageROI, detectedVehicles, 1.01, 3, 0 | CASCADE_FIND_BIGGEST_OBJECT, Size(10, 10), Size(150, 150));
+    //haarClassifier.detectMultiScale(imageROI, detectedVehicles, 1.01, 1, 0 | CASCADE_FIND_BIGGEST_OBJECT, Size(5, 5), Size(150, 150));
+    haarClassifier.detectMultiScale(imageROI, detectedVehicles, 1.01, 1, 0, Size(10, 10), Size(150, 150));
     //haarClassifier.detectMultiScale(imageROI, detectedVehicles, 1.1, 3, 0 | CASCADE_FIND_BIGGEST_OBJECT, Size(20, 20), Size(150, 150));
     //cout << "Just before for loop \n";
-    for (size_t i = 0; i < detectedVehicles.size(); i++)
-    {
+    if (exportHaarImages) {
+      for (size_t i = 0; i < detectedVehicles.size(); i++) {
+        Rect r = detectedVehicles[i];
+        cout << "should have exported " << haarExportCounter << " images so far.\n";
+        ostringstream ss;
+        ss << haarImgExport << "img" << haarExportCounter << ".jpg\n";
+        string myStr = ss.str();
+        imwrite(myStr, imageROI(r));
+        //cout << myStr;
+        haarExportCounter++;
+      }
+    }
+    for (size_t i = 0; i < detectedVehicles.size(); i++) {
       //cout << "Inside for loop \n";
       Rect r = detectedVehicles[i];
       r.y += roiY;
@@ -146,6 +161,9 @@ int main(int argc, const char * argv[]) {
         idx++;
       }
       //cout << "After loop \n";
+
+      // TODO loop through every feature and rescale according to constants loaded from file!
+      
       Mat featureMat(nrOfFeatures, 1, CV_32FC1, featureVector);
       // The following line will crash if wrong number of inputs to SVM!
       float response = mySVM.predict(featureMat);
@@ -156,8 +174,8 @@ int main(int argc, const char * argv[]) {
         // if this rectangle gets verified by SVM, draw green
         rectangle(src, r, Scalar(0,255,0));
       } else {
-        // otherwise, if not verified, draw red
-        //rectangle(src, r, Scalar(0,0,255));
+        // otherwise, if not verified, draw gray
+        rectangle(src, r, Scalar(30,30,30));
       }
     }
     

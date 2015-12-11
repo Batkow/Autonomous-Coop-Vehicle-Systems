@@ -21,6 +21,7 @@ void SetSVMParams(CvSVMParams* params) {
     // Set up SVM's parameters
     params->svm_type    = CvSVM::C_SVC;
     params->C = 0.1;
+    params->gamma = 1;
     params->kernel_type = CvSVM::RBF;
     params->term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 1e7, 1e-6);
 }
