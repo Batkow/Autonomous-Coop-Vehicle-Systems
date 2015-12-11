@@ -11,54 +11,18 @@
 using namespace cv;
 using namespace std;
 
-	
-class Camera_Matrix
-{
-	public:
-	    void write(FileStorage& fs) const                        //Write serialization for this class
-	     {
-	         fs << "{" << "rows"  << rows
-	                   << "cols" << cols
-					   << "data" << data
-	            << "}";
-	     }
-	     void read(const FileNode& node)                          //Read serialization for this class
-	     {
-	         node["rows" ] >> rows;
-	         node["cols"] >> cols;
-	         node["data"] >> data;
-	     }
-	public:
-		int rows;
-		int cols;
-		Mat data;
-};
-
-static void write(FileStorage& fs, const std::string&, const Camera_Matrix& x)
-{
-    x.write(fs);
-}
-
-static void read(const FileNode& node, Camera_Matrix& x, const Camera_Matrix& default_value = Camera_Matrix())
-{
-	if(node.empty())
-		x = default_value;
-	else
-		x.read(node);
-}
-
-const char * camMatrixXMLFile = "/Users/tempuser/Documents/camera_calibration/out_camera_data.xml";
 
 int main(int argc, const char * argv[]) {
-	Camera_Matrix cm;
 
-    const char * camMatrixXMLFile = "/Users/tempuser/Documents/camera_calibration/out_camera_data.xml";
+    const char * camMatrixXMLFile = "default.xml";
+	
     if (argv[1]) {
       camMatrixXMLFile =  argv[1];
       cout << "camMatrixXMLFile: " << argv[1] <<  "\n";
     } else {
       cout << "No camMatrixXMLFile specified! \n";
     }
+	
 	FileStorage fs;
 	fs.open(camMatrixXMLFile, FileStorage::READ);
 	if (!fs.isOpened())
@@ -66,10 +30,38 @@ int main(int argc, const char * argv[]) {
 		cout << "Could not open XML file : \""<< camMatrixXMLFile << "\"" << endl;
 		return -1;
 	}
-	Mat camMatrix;
-	fs["data"] >> camMatrix;
 	
-	cout << "camera matrix: " << camMatrix << endl;
+// first method: use (type) operator on FileNode.
+	int frameCount = (int)fs["nrOfFrames"];
+
+	std::string date;
+// second method: use FileNode::operator >>
+	fs["calibration_Time"] >> date;
+
+	Mat cameraMatrix2, distCoeffs2;
+	fs["Camera_Matrix"] >> cameraMatrix2;
+	fs["Distortion_Coefficients"] >> distCoeffs2;
+
+	cout << "frameCount: " << frameCount << endl
+    	 << "calibration date: " << date << endl
+     	 << "camera matrix: " << cameraMatrix2 << endl
+     	 << "distortion coeffs: " << distCoeffs2 << endl;
+		
+	double sum = 0;	
+	Mat Mi;
+	Mi = Mat::zeros(1,3,CV_32F);
+	cout << Mi << "\n";
+	for(int i = 0; i < cameraMatrix2.rows; i++)
+	{
+		Mi(1,i) = cameraMatrix2.ptr<double>(i);
+		cout << "Mi " << Mi << endl;
+	}
+	cout << "sum" << sum << endl;
+	//cout << "Mi " << Mi[1] << endl;
+	int m;	
+	//m = Mi[1]; //Pixels per millimeter
+	//cout << "pixels per mm" << m << endl;
+	
 	/*
 	FileNode camMatrix = fs["data"];
 	int noOfFeatures = camMatrix.size();
@@ -80,7 +72,6 @@ int main(int argc, const char * argv[]) {
 	fs.release();
 	
 	//camMatrix = cm.cam_mat_data;
-	cout << "Level1 \n";
 	//cout << camMatrix;
 	
 	return 0;
