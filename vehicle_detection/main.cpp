@@ -22,11 +22,13 @@ using namespace cv;
 
 int ROWV,COLV,MINROW,MAXROW,T1,T2;
 const char * haarClassPath = "haar_classifiers/currently_used_classifier.xml";
+const char * haarClassPath1 = "haar_classifiers/cars3.xml";
 const char * svmPath = "trained_svm.xml";
 const char * normConstPath = "svm_normalization_const.csv";
 bool exportHaarImages = false;
 string haarImgExport = "tmp_img/";
 int haarExportCounter = 0;
+int tmpCounter = 0;
 
 int main(int argc, const char * argv[]) {
   cout << "\n";
@@ -65,7 +67,7 @@ int main(int argc, const char * argv[]) {
   FileStorage fs(haarClassPath, FileStorage::READ);
   FileNode featuresNode = fs["cascade"]["features"];
   int nrOfFeatures = featuresNode.size();
-  double featureVector[nrOfFeatures];
+  float featureVector[nrOfFeatures];
   Ptr<FeatureEvaluator> ptrHaar = FeatureEvaluator::create(FeatureEvaluator::HAAR);
   ptrHaar->read(featuresNode);
 
@@ -117,6 +119,7 @@ int main(int argc, const char * argv[]) {
       src = cvQueryFrame(capture);
     }
     resize(src, src, Size(windowWidth,windowHeight),0,0,INTER_CUBIC);
+    IMG = src.clone();
     //resize(src, src, Size(320,240),0,0,INTER_CUBIC);
 
     imageROI = src(regionOfInterest);
@@ -144,7 +147,7 @@ int main(int argc, const char * argv[]) {
     //cout << "Before detectMultiScale  \n";
     //haarClassifier.detectMultiScale(imageROI, detectedVehicles);
     //haarClassifier.detectMultiScale(imageROI, detectedVehicles, 1.01, 1, 0 | CASCADE_FIND_BIGGEST_OBJECT, Size(5, 5), Size(150, 150));
-    haarClassifier.detectMultiScale(imageROI, detectedVehicles, 1.01, 1, 0, Size(10, 10), Size(150, 150));
+    haarClassifier.detectMultiScale(imageROI, detectedVehicles, 1.03, 1, 0, Size(10, 10), Size(150, 150));
     //haarClassifier.detectMultiScale(imageROI, detectedVehicles, 1.1, 3, 0 | CASCADE_FIND_BIGGEST_OBJECT, Size(20, 20), Size(150, 150));
     //cout << "Just before for loop \n";
     if (exportHaarImages) {
@@ -171,45 +174,66 @@ int main(int argc, const char * argv[]) {
       //ptrHaar->setWindow(Point(0, 0));
       int idx = 0;
       //cout << "Before loop \n";
-      while (it != it_end) {
-        featureVector[idx] = ptrHaar->calcOrd(idx);
+      while (it != it_end) { // TODO: possible to exchange this to an ordinary for loop.
+        featureVector[idx] = (float)ptrHaar->calcOrd(idx);
+        //cout << "Feature number " << idx << " : " << featureVector[idx];
         if (rescalingConstants[idx][1] > 0) {
           //cout << "currently rescaling feature " << idx << ": oldValue=" << featureVector[idx];
           float myMean = rescalingConstants[idx][0];
           float myStd = rescalingConstants[idx][1];
           featureVector[idx] = (featureVector[idx]-myMean)/myStd;
           //cout << "\tnewValue="<< featureVector[idx] << "\n";
+          //cout << " - rescaled to -> " << featureVector[idx] << "\n";
         }
-        //cout << "Feature number " << idx << " : " << res << "\n";
+        //cout << "Feature number " << idx << " : " << featureVector[idx] << "\n";
         it++;
         idx++;
       }
-      //cout << "After loop \n";
-
-      // TODO loop through every feature and rescale according to constants loaded from file!
+      cout << "After loop \n";
+      /*
+      if (abs(featureVector[140])>100 && abs(featureVector[141])>100 && abs(featureVector[142])>100) {
+        cout << "This is a picture that gives weird numbers\n";
+        ostringstream ss;
+        ss << haarImgExport << "img" << tmpCounter << ".jpg\n";
+        string myStr = ss.str();
+        imwrite(myStr, src(r));
+        //cout << myStr;
+        tmpCounter++;
+        cout << "Image saved to " << haarImgExport << "\n";
+      }
+      */
       
       Mat featureMat(nrOfFeatures, 1, CV_32FC1, featureVector);
+
+      //cout << "Printing features: \n";
+      //cout << featureMat << "\n";
+      //cout << "Features printed... \n";
+      //waitKey(0);
+
+
       // The following line will crash if wrong number of inputs to SVM!
       float response = mySVM.predict(featureMat);
       //float response = 0;
-      //cout << "SVM response: " << response << "\n";
+      cout << "SVM response: " << response << "\n";
+      imshow("debug", src(r));
+      //waitKey(0);
 
       if (response > 0) {
         // if this rectangle gets verified by SVM, draw green
-        rectangle(src, r, Scalar(0,255,0));
+        rectangle(IMG, r, Scalar(0,255,0));
       } else {
         // otherwise, if not verified, draw gray
-        rectangle(src, r, Scalar(30,30,30));
+        rectangle(IMG, r, Scalar(30,30,30));
       }
     }
     
     //cout<<(float)(clock()-begin) / CLOCKS_PER_SEC<<endl;
     
     // display region of interest
-    rectangle(src, regionOfInterest, Scalar(255, 0, 255));
+    rectangle(IMG, regionOfInterest, Scalar(255, 0, 255));
 
     // Show image
-    imshow("Vehicle detection", src);
+    imshow("Vehicle detection", IMG);
     moveWindow("Vehicle detection", 100, 0);
 
     // Key press events

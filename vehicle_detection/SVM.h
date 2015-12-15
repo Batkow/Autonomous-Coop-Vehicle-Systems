@@ -20,8 +20,14 @@ using namespace cv;
 void SetSVMParams(CvSVMParams* params) {
     // Set up SVM's parameters
     params->svm_type    = CvSVM::C_SVC;
-    params->C = 0.1;
-    params->gamma = 1;
+    //params->C = 1; params->gamma = 0.1; // validation: 0.0590035
+    //params->C = 1; params->gamma = 0.01; // validation: 0.0598776
+    //params->C = 0.1; params->gamma = 0.01; // validation: 0.0598776
+    //params->C = 1; params->gamma = 1; // validation: 0.0598776
+    //params->C = 10; params->gamma = 0.01; // validation: 0.0607517
+    //params->C = 100; params->gamma = 0.001; // validation: 0.0620629
+    params->C = 10; params->gamma = 0.001; // validation: 0.0607517
+
     params->kernel_type = CvSVM::RBF;
     params->term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 1e7, 1e-6);
 }
