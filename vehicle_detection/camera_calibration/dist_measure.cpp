@@ -46,29 +46,7 @@ int main(int argc, const char * argv[]) {
     	 << "calibration date: " << date << endl
      	 << "camera matrix: " << cameraMatrix2 << endl
      	 << "distortion coeffs: " << distCoeffs2 << endl;
-		
-	double sum = 0;	
-	Mat Mi;
-	Mi = Mat::zeros(1,3,CV_32F);
-	cout << Mi << "\n";
-	for(int i = 0; i < cameraMatrix2.rows; i++)
-	{
-		Mi(1,i) = cameraMatrix2.ptr<double>(i);
-		cout << "Mi " << Mi << endl;
-	}
-	cout << "sum" << sum << endl;
-	//cout << "Mi " << Mi[1] << endl;
-	int m;	
-	//m = Mi[1]; //Pixels per millimeter
-	//cout << "pixels per mm" << m << endl;
-	
-	/*
-	FileNode camMatrix = fs["data"];
-	int noOfFeatures = camMatrix.size();
-	double featureVector[noOfFeatures];
-	cout << noOfFeatures << "\n";
-	//fs["Camera_Matrix"] >> cm;
-	*/
+
 	fs.release();
 	
 	//camMatrix = cm.cam_mat_data;
