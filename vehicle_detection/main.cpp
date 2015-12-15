@@ -6,6 +6,7 @@
 //  Copyright © 2015 Ivo Batkovic. All rights reserved.
 //
 #include <iostream>
+#include <string>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -49,7 +50,7 @@ int main(int argc, const char * argv[]) {
   Mat src,IMG,imageROI;
 
   // Load Haar classifier (used for generating hypotheses)
-  CascadeClassifier haarClassifier = CascadeClassifier(haarClassPath);
+  CascadeClassifier haarClassifier = CascadeClassifier(haarClassPath1);
   if (haarClassifier.empty()) {
     cout << "LOADED HAAR CLASSIFIER WAS EMPTY!!!\n";
   }
@@ -191,6 +192,12 @@ int main(int argc, const char * argv[]) {
         // otherwise, if not verified, draw gray
         rectangle(IMG, r, Scalar(30,30,30));
       }
+
+      float estDist = estimateDistance(r.x + r.width/2, r.y + r.width/2);
+      ostringstream mySs;
+      mySs << estDist << " m";
+      string distText = mySs.str();
+      putText(IMG, distText.c_str(), Point(r.x, r.y), FONT_HERSHEY_PLAIN, 1, Scalar(255, 255, 255));
     }
     
     //cout<<(float)(clock()-begin) / CLOCKS_PER_SEC<<endl;
@@ -211,4 +218,4 @@ int main(int argc, const char * argv[]) {
   cvReleaseCapture(&capture);
   cvDestroyWindow("Vehicle detection");
   return 0;
-  }
+}
