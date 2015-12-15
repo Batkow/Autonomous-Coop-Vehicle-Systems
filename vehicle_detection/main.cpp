@@ -6,7 +6,6 @@
 //  Copyright © 2015 Ivo Batkovic. All rights reserved.
 //
 #include <iostream>
-//#include <sstream>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -14,8 +13,8 @@
 #include <opencv2/objdetect/objdetect.hpp>
 #include <opencv2/ml/ml.hpp>
 #include <ctime>
-#include <Eigen/Dense>
 #include <fstream>
+#include "DistanceEstimation.h"
 
 using namespace std;
 using namespace cv;
@@ -32,8 +31,7 @@ int tmpCounter = 0;
 
 int main(int argc, const char * argv[]) {
   cout << "\n";
-  // Setting selection for two different videos
-  Eigen::MatrixXd regions(1,4);
+
   CvCapture* capture;
 
 
@@ -46,16 +44,9 @@ int main(int argc, const char * argv[]) {
   }
   cout << "Path to trained SVM: " << svmPath <<  "\n";
   
-  //Highway
-  ROWV = 293; COLV = 316;
-  MINROW = 350; MAXROW = 450;
-  T1 = 50; T2 = 150;
   capture = cvCreateFileCapture(videoPath);
-  regions << -60, COLV,700,MAXROW;
-
 
   Mat src,IMG,imageROI;
-
 
   // Load Haar classifier (used for generating hypotheses)
   CascadeClassifier haarClassifier = CascadeClassifier(haarClassPath);
@@ -87,20 +78,6 @@ int main(int argc, const char * argv[]) {
     //cout << rescalingConstants[i][1] << "\n";
   }
 
-  /*
-  // Set nPoints...but also check so it does not exceed.
-  int nPoints = 50, nMaxPoints = MAXROW-MINROW;
-
-  if (nPoints > nMaxPoints)
-    nPoints = nMaxPoints;
-  
-  Eigen::MatrixXd lines(regions.cols()-1,2);
-  
-  GetRegionLines(&regions,&lines,ROWV,COLV);
-  */
-  
-  //cout << "Number of Haar features:  " << nrOfFeatures << " \n";
-  //cout << "Length of feature vector: " << sizeof(featureVector)/sizeof(featureVector[0]) << " \n";
 
   int windowWidth = 800;
   int windowHeight = 600;
@@ -108,6 +85,8 @@ int main(int argc, const char * argv[]) {
   vector<Rect> detectedVehicles;
   int roiY = 200;
   Rect regionOfInterest(0, roiY, windowWidth, windowHeight-roiY);
+
+  initializeDistanceEstimation();
   
   cout << "Just before video loop \n";
   while(1) {
@@ -127,19 +106,6 @@ int main(int argc, const char * argv[]) {
     // Process frame
 
     GaussianBlur(src, src, Size(3,3), 1);
-    /*
-    GaussianBlur(src, src, Size(5,5), 1);
-    Canny(src, image, T1, T2);
-    
-    Eigen::MatrixXd recoveredPoints(nPoints,lines.rows()+2);
-    
-    ScanImage(&image,&lines,&recoveredPoints,nPoints,MINROW,MAXROW);
-    
-    long nRegions = recoveredPoints.cols()-1;
-    
-    Eigen::MatrixXd K(nRegions,1), M(nRegions,1);
-    ExtractLines(&recoveredPoints,&K,&M,nRegions,nPoints);
-    */
 
     // trying Haar stuff
     //imshow("Vehicle detection", src);
