@@ -18,7 +18,9 @@ INCLUDEPATH_b = -I/usr/include/opencv2
 INCLUDEPATH_s += -I/usr/local/Cellar/eigen/3.2.6/include/eigen3
 INCLUDEPATH_b += -I/usr/include/eigen3
 
-ARGUMENTS_b = "/home/plankton/Videos/rostock.avi"
+#ARGUMENTS_b = "/home/plankton/Videos/data_1612.avi"
+ARGUMENTS_b = "/home/plankton/Videos/data_1608.avi"
+#ARGUMENTS_b = "/home/plankton/Videos/rostock.avi"
 #ARGUMENTS_b = "/home/plankton/Videos/highway.avi"
 ARGUMENTS_s = "/Users/tempuser/Documents/highway.avi"
 
