@@ -13,8 +13,10 @@
 #include <opencv2/objdetect/objdetect.hpp>
 #include <opencv2/ml/ml.hpp>
 #include "SVM.h"
+#include "util.cpp"
 #include <math.h>
 #include <fstream>
+#include <vector>
 
 using namespace std;
 using namespace cv;
@@ -126,8 +128,8 @@ int main(int argc, const char * argv[]) {
         ptrHaar->setWindow(Point(0, 0));
         int idx = 0;
         while (it != it_end) {
-            trainingData[dataPointCounter][idx] = ptrHaar->calcOrd(idx);
-            featureVector[idx] = ptrHaar->calcOrd(idx);
+            trainingData[dataPointCounter][idx] = (float)ptrHaar->calcOrd(idx);
+            //featureVector[idx] = (float)ptrHaar->calcOrd(idx);
             //cout << "Feature number " << idx << " : " << ptrHaar->calcOrd(idx) << "\n";
             it++;
             idx++;
@@ -180,8 +182,8 @@ int main(int argc, const char * argv[]) {
         ptrHaar->setWindow(Point(0, 0));
         int idx = 0;
         while (it != it_end) {
-            trainingData[dataPointCounter][idx] = ptrHaar->calcOrd(idx);
-            featureVector[idx] = ptrHaar->calcOrd(idx);
+            trainingData[dataPointCounter][idx] = (float)ptrHaar->calcOrd(idx);
+            //featureVector[idx] = (float)ptrHaar->calcOrd(idx);
             //cout << "Feature number " << idx << " : " << ptrHaar->calcOrd(idx) << "\n";
             it++;
             idx++;
@@ -196,10 +198,40 @@ int main(int argc, const char * argv[]) {
     //waitKey(0);
 
 
-    Mat labelsMat(totalTrainingSetSize, 1, CV_32FC1, labels);
-    Mat trainingDataMat(totalTrainingSetSize, nrFeatures, CV_32FC1, trainingData);
+    Mat tmpLabelsMat(totalTrainingSetSize, 1, CV_32FC1, labels);
+    Mat tmpDataMat(totalTrainingSetSize, nrFeatures, CV_32FC1, trainingData);
 
-    // TODO must rescale the data and store subtraction and scaling constants for each feature to file.
+
+    float partValidation = 0.1;
+    int nrValidationData = (int)(totalTrainingSetSize*partValidation);
+    cout << "Nr data used for validation: " << nrValidationData << endl;
+    vector<int> randomIndices;
+    for (int i=0; i<totalTrainingSetSize; ++i) randomIndices.push_back(i);
+    random_shuffle(randomIndices.begin(), randomIndices.end());
+    
+    Mat validationLabelsMat(nrValidationData, 1, CV_32FC1);
+    Mat validationDataMat(nrValidationData, nrFeatures, CV_32FC1);
+    Mat labelsMat(totalTrainingSetSize-nrValidationData, 1, CV_32FC1);
+    Mat trainingDataMat(totalTrainingSetSize-nrValidationData, nrFeatures, CV_32FC1);
+    for (int i=0; i<nrValidationData; i++) {
+        // put from tmp data/labels into validation
+        validationLabelsMat.at<float>(i) = tmpLabelsMat.at<float>(randomIndices.at(i));
+        for (int j=0; j<nrFeatures; j++) {
+            validationDataMat.at<float>(i, j) = tmpDataMat.at<float>(randomIndices.at(i), j);
+        }
+    }
+    for (int i=nrValidationData; i<totalTrainingSetSize; i++) {
+        // put from tmp data/labels into training
+        labelsMat.at<float>(i-nrValidationData) = tmpLabelsMat.at<float>(randomIndices.at(i));
+        for (int j=0; j<nrFeatures; j++) {
+            trainingDataMat.at<float>(i-nrValidationData, j) = tmpDataMat.at<float>(randomIndices.at(i), j);
+        }
+    }
+
+
+
+
+    // rescale the data and store subtraction and scaling constants for each feature to file.
     float rescalingConstants[nrFeatures][2];
     for (int j=0; j<trainingDataMat.cols; j++) {
         // for every feature, calculate mean and stddev, and then standardize the data
@@ -208,10 +240,13 @@ int main(int argc, const char * argv[]) {
         double featureMean = calcMean(trainingDataMat.col(j));
         double featureStd = calcStd(trainingDataMat.col(j),  featureMean);
         //cout << "After\n";
-        cout << "Feature " << j << ". (mean, std) = (" << featureMean << ", " << featureStd << ")";
+        //cout << "Feature " << j << ". (mean, std) = (" << featureMean << ", " << featureStd << ")";
         for (int i=0; i<trainingDataMat.rows; i++) {
             double prevValue = trainingDataMat.at<float>(i,j);
-            double newValue = (prevValue - featureMean)/featureStd;
+            double newValue = prevValue;
+            if (featureStd>0) {
+                newValue = (prevValue - featureMean)/featureStd;
+            }
             //cout << i << ": (prev, new) - (" << prevValue << ", " << newValue << ")\n";
             //waitKey(0);
             trainingDataMat.at<float>(i,j) = (float)newValue;
@@ -224,7 +259,7 @@ int main(int argc, const char * argv[]) {
         //meanStdDev(trainingDataMat.col(j), m, stdv);
         featureMean = calcMean(trainingDataMat.col(j));
         featureStd = calcStd(trainingDataMat.col(j),  featureMean);
-        cout << "\t -> (" << featureMean << ", " << featureStd << ")\n";        
+        //cout << "\t -> (" << featureMean << ", " << featureStd << ")\n";        
     }
 
     ofstream normConstFile(normConstPath);
@@ -259,6 +294,8 @@ int main(int argc, const char * argv[]) {
 
     // *** End of what needs to be changed ***
 
+    SaveMatToFile("svmTrainingData.csv", &trainingDataMat);
+    SaveMatToFile("svmTrainingLabels.csv", &labelsMat);
 
 
     // Set up SVM's parameters
@@ -268,9 +305,48 @@ int main(int argc, const char * argv[]) {
     // Train the SVM
     cout << "Training the SVM!\n";
     CvSVM SVM;
+    int kfold = 5;
+    CvParamGrid cGrid(0.1, 30, 10);
+    CvParamGrid gammaGrid(0.01, 5, 10);
     SVM.train(trainingDataMat, labelsMat, Mat(), Mat(), params);
-    //SVM.train_auto(trainingDataMat, labelsMat, Mat(), Mat(), params);
+    //SVM.train_auto(trainingDataMat, labelsMat, Mat(), Mat(), params, kfold, cGrid, gammaGrid);
+
+    cout << "SVM parameters:\n";
+    cout << "C: " << SVM.get_params().C << "\n";
+    cout << "gamma: " << SVM.get_params().gamma << "\n";
 
 
     SVM.save(targetPath);
+
+    float correctlyClassified = 0;
+    float truePositives = 0;
+    float trueNegatives = 0;
+    float falsePositives = 0;
+    float falseNegatives = 0;
+    for (int i=0; i<validationDataMat.rows; i++) {
+        Mat input = validationDataMat.row(i);
+        float expectedResult = validationLabelsMat.at<float>(i);
+        float result = SVM.predict(input);
+        if ((result < 0 && expectedResult < 0) || (result > 0 && expectedResult > 0)) {
+            correctlyClassified++;
+        }
+        if (result < 0 && expectedResult < 0) {
+            trueNegatives++;
+        }
+        if (result > 0 && expectedResult > 0) {
+            truePositives++;
+        }
+        if (result < 0 && expectedResult > 0) {
+            falseNegatives++;
+        }
+        if (result > 0 && expectedResult < 0) {
+            falsePositives++;
+        }
+    }
+    cout << "\n\nClassification rate on validation data: ";
+    cout << correctlyClassified << "/" << totalTrainingSetSize << " = " << (correctlyClassified/totalTrainingSetSize) << "\n";
+    cout << "\n\nFalse positives (should be low): ";
+    cout << falsePositives << "/" << (trueNegatives + falsePositives) << " = " << (falsePositives/(trueNegatives + falsePositives)) << "\n";
+    cout << "\n\nFalse negatives (should be low): ";
+    cout << falseNegatives << "/" << (truePositives + falseNegatives) << " = " << (falseNegatives/(truePositives + falseNegatives)) << "\n";
 }

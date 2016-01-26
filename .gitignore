@@ -5,3 +5,4 @@ vehicle_detection/svm_normalization_const.csv
 vehicle_detection/negative_images/
 vehicle_detection/positive_images/
 vehicle_detection/svm_train_orig/
+vehicle_detection/timestamps.log
