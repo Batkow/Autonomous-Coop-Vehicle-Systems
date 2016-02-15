@@ -25,8 +25,8 @@ void SetSVMParams(CvSVMParams* params) {
     //params->C = 0.1; params->gamma = 0.01; // validation: 0.0598776
     //params->C = 1; params->gamma = 1; // validation: 0.0598776
     //params->C = 10; params->gamma = 0.01; // validation: 0.0607517
-    //params->C = 100; params->gamma = 0.001; // validation: 0.0620629
-    params->C = 10; params->gamma = 0.001; // validation: 0.0607517
+    //params->C = 100; params->gamma = 0.001; // validation: 0.605263
+    params->C = 100; params->gamma = 1000;
 
     params->kernel_type = CvSVM::RBF;
     params->term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 1e7, 1e-6);

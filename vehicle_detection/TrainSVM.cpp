@@ -344,7 +344,7 @@ int main(int argc, const char * argv[]) {
         }
     }
     cout << "\n\nClassification rate on validation data: ";
-    cout << correctlyClassified << "/" << totalTrainingSetSize << " = " << (correctlyClassified/totalTrainingSetSize) << "\n";
+    cout << correctlyClassified << "/" << nrValidationData << " = " << (correctlyClassified/nrValidationData) << "\n";
     cout << "\n\nFalse positives (should be low): ";
     cout << falsePositives << "/" << (trueNegatives + falsePositives) << " = " << (falsePositives/(trueNegatives + falsePositives)) << "\n";
     cout << "\n\nFalse negatives (should be low): ";

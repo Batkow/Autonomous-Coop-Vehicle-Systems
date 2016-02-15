@@ -110,7 +110,7 @@ int main(int argc, const char * argv[]) {
 
   initializeDistanceEstimation();
 
-  //VideoWriter vidWriter(videoOutputPath, CV_FOURCC('M', 'J', 'P', 'G'), 30, Size(windowWidth, windowHeight), true);
+  VideoWriter vidWriter(videoOutputPath, CV_FOURCC('M', 'J', 'P', 'G'), 18, Size(windowWidth, windowHeight), true);
   //VideoWriter vidSourceWriter(videoSourcePath, CV_FOURCC('M', 'J', 'P', 'G'), 10, Size(windowWidth, windowHeight), true);
   
   cout << "Just before video loop \n";
@@ -220,11 +220,13 @@ int main(int argc, const char * argv[]) {
         rectangle(IMG, r, Scalar(30,30,30));
       }
 
+      rectangle(IMG, r, Scalar(0,255,0));
+
       float estDist = estimateDistance(r.x + r.width/2, windowHeight - (r.y + 0.8*r.width));
       ostringstream mySs;
       mySs << estDist << " m";
       string distText = mySs.str();
-      putText(IMG, distText.c_str(), Point(r.x, r.y), FONT_HERSHEY_PLAIN, 1, Scalar(255, 255, 255));
+      //putText(IMG, distText.c_str(), Point(r.x, r.y), FONT_HERSHEY_PLAIN, 1, Scalar(255, 255, 255));
     }
     
     //cout<<(float)(clock()-begin) / CLOCKS_PER_SEC<<endl;
@@ -237,7 +239,7 @@ int main(int argc, const char * argv[]) {
     moveWindow("Vehicle detection", 100, 0);
 
     // Save to video
-    //vidWriter.write(IMG);
+    vidWriter.write(IMG);
     //vidSourceWriter.write(ORIGSOURCE);
 
     float timeTaken = (float) (clock()-begin)/CLOCKS_PER_SEC;

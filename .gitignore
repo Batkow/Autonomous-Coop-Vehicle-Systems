@@ -1,6 +1,7 @@
 *.exe
 *~
 vehicle_detection/trained_svm.xml
+vehicle_detection/svmTrainingData.csv
 vehicle_detection/svm_normalization_const.csv
 vehicle_detection/negative_images/
 vehicle_detection/positive_images/
